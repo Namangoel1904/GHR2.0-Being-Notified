@@ -125,7 +125,7 @@ export function buildSystemPrompt(riskProfile?: {
     health_score: number;
     recommendations: string[];
 } | null): string {
-    let base = `You are FinAegis, a privacy-first AI financial advisor running locally on the user's device. All data stays on-device.
+    let base = `You are ArthNiti, a privacy-first AI financial advisor running locally on the user's device. All data stays on-device.
 
 RULES:
 - Provide actionable, explainable budgeting and savings insights.

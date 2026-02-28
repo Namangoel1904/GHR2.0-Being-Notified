@@ -119,8 +119,8 @@ export default function AuthPage() {
         <div className="min-h-screen flex items-center justify-center p-4 dot-pattern">
             {/* Background glow orbs */}
             <div className="fixed inset-0 overflow-hidden pointer-events-none">
-                <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-emerald-500/5 rounded-full blur-3xl" />
-                <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-emerald-600/5 rounded-full blur-3xl" />
+                <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500/5 rounded-full blur-3xl" />
+                <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-blue-600/5 rounded-full blur-3xl" />
             </div>
 
             <motion.div
@@ -129,16 +129,16 @@ export default function AuthPage() {
                 transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
                 className="relative w-full max-w-md"
             >
-                <div className="glass-strong rounded-3xl p-8 glow-emerald">
+                <div className="glass-strong rounded-3xl p-8 glow-blue">
                     {/* Header */}
                     <div className="text-center mb-8">
                         <motion.div
                             initial={{ scale: 0 }}
                             animate={{ scale: 1 }}
                             transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-                            className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-emerald-500/15 flex items-center justify-center glow-emerald-strong"
+                            className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-blue-500/15 flex items-center justify-center glow-blue-strong"
                         >
-                            <Shield className="w-8 h-8 text-emerald-400" />
+                            <Shield className="w-8 h-8 text-blue-400" />
                         </motion.div>
                         <h1 className="text-2xl font-bold text-[var(--color-text-primary)] mb-1">
                             {mode === "login" ? "Welcome Back" : "Create Account"}
@@ -161,7 +161,7 @@ export default function AuthPage() {
                                     setMessage("");
                                 }}
                                 className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all duration-200 ${mode === m
-                                    ? "bg-emerald-500/20 text-emerald-300 shadow-lg shadow-emerald-500/10"
+                                    ? "bg-blue-500/20 text-blue-300 shadow-lg shadow-blue-500/10"
                                     : "text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]"
                                     }`}
                             >
@@ -182,7 +182,7 @@ export default function AuthPage() {
                                 onChange={(e) => setUsername(e.target.value)}
                                 placeholder="Enter your username"
                                 disabled={step === "prompting"}
-                                className="w-full px-4 py-3 rounded-xl bg-[var(--color-bg-primary)]/80 border border-[var(--color-border)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-dim)] focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 transition-all disabled:opacity-50"
+                                className="w-full px-4 py-3 rounded-xl bg-[var(--color-bg-primary)]/80 border border-[var(--color-border)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-dim)] focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 transition-all disabled:opacity-50"
                             />
                         </div>
 
@@ -203,7 +203,7 @@ export default function AuthPage() {
                                         onChange={(e) => setDisplayName(e.target.value)}
                                         placeholder="Your display name"
                                         disabled={step === "prompting"}
-                                        className="w-full px-4 py-3 rounded-xl bg-[var(--color-bg-primary)]/80 border border-[var(--color-border)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-dim)] focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 transition-all disabled:opacity-50"
+                                        className="w-full px-4 py-3 rounded-xl bg-[var(--color-bg-primary)]/80 border border-[var(--color-border)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-dim)] focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 transition-all disabled:opacity-50"
                                     />
                                 </motion.div>
                             )}
@@ -226,7 +226,7 @@ export default function AuthPage() {
                                         checked={disclaimerAccepted}
                                         disabled={!disclaimerScrolledToBottom}
                                         onChange={(e) => setDisclaimerAccepted(e.target.checked)}
-                                        className="w-4 h-4 rounded border-2 border-[var(--color-border)] bg-transparent checked:bg-emerald-500 checked:border-emerald-500 focus:ring-emerald-500/30 focus:ring-2 transition-all disabled:opacity-40 disabled:cursor-not-allowed accent-emerald-500"
+                                        className="w-4 h-4 rounded border-2 border-[var(--color-border)] bg-transparent checked:bg-blue-500 checked:border-blue-500 focus:ring-blue-500/30 focus:ring-2 transition-all disabled:opacity-40 disabled:cursor-not-allowed accent-blue-500"
                                     />
                                     <span className="text-sm text-[var(--color-text-muted)]">
                                         I have read and agree to the{" "}
@@ -237,7 +237,7 @@ export default function AuthPage() {
                                                 setDisclaimerOpen(true);
                                                 setDisclaimerScrolledToBottom(false);
                                             }}
-                                            className="text-emerald-400 underline underline-offset-2 hover:text-emerald-300 transition-colors font-medium"
+                                            className="text-blue-400 underline underline-offset-2 hover:text-blue-300 transition-colors font-medium"
                                         >
                                             Disclaimer
                                         </button>
@@ -258,7 +258,7 @@ export default function AuthPage() {
                         whileTap={{ scale: isButtonDisabled ? 1 : 0.98 }}
                         onClick={handleAuth}
                         disabled={isButtonDisabled}
-                        className="w-full py-3.5 px-6 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 text-white font-semibold text-sm flex items-center justify-center gap-2.5 hover:from-emerald-500 hover:to-emerald-400 transition-all shadow-lg shadow-emerald-500/25 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="w-full py-3.5 px-6 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 text-white font-semibold text-sm flex items-center justify-center gap-2.5 hover:from-blue-500 hover:to-blue-400 transition-all shadow-lg shadow-blue-500/25 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         {step === "prompting" ? (
                             <>
@@ -274,9 +274,9 @@ export default function AuthPage() {
                     </motion.button>
 
                     {/* Info callout */}
-                    <div className="mt-4 p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/10 text-[var(--color-text-muted)] text-xs space-y-1">
+                    <div className="mt-4 p-3 rounded-xl bg-blue-500/5 border border-blue-500/10 text-[var(--color-text-muted)] text-xs space-y-1">
                         <div className="flex items-center gap-2">
-                            <Smartphone className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+                            <Smartphone className="w-3.5 h-3.5 text-blue-400 flex-shrink-0" />
                             <span>
                                 {mode === "login"
                                     ? "Your browser will show options: security key, biometrics, or phone via QR"
@@ -297,7 +297,7 @@ export default function AuthPage() {
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, y: -10 }}
                                 className={`mt-4 p-3 rounded-xl flex items-center gap-2 text-sm ${step === "success"
-                                    ? "bg-emerald-500/10 text-emerald-300 border border-emerald-500/20"
+                                    ? "bg-blue-500/10 text-blue-300 border border-blue-500/20"
                                     : "bg-red-500/10 text-red-300 border border-red-500/20"
                                     }`}
                             >
@@ -347,12 +347,12 @@ export default function AuthPage() {
                             exit={{ opacity: 0, y: 40, scale: 0.95 }}
                             transition={{ type: "spring", stiffness: 300, damping: 30 }}
                             onClick={(e) => e.stopPropagation()}
-                            className="relative w-full max-w-3xl max-h-[85vh] flex flex-col glass-strong rounded-2xl border border-[var(--color-border)] glow-emerald overflow-hidden"
+                            className="relative w-full max-w-3xl max-h-[85vh] flex flex-col glass-strong rounded-2xl border border-[var(--color-border)] glow-blue overflow-hidden"
                         >
                             {/* Modal Header */}
                             <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--color-border)]">
                                 <div className="flex items-center gap-2">
-                                    <ScrollText className="w-5 h-5 text-emerald-400" />
+                                    <ScrollText className="w-5 h-5 text-blue-400" />
                                     <h2 className="text-lg font-bold text-[var(--color-text-primary)]">
                                         Disclaimer
                                     </h2>
@@ -372,7 +372,7 @@ export default function AuthPage() {
                                 className="flex-1 overflow-y-auto px-6 py-5 text-base text-[var(--color-text-secondary)] leading-relaxed space-y-4 scroll-smooth"
                                 style={{ maxHeight: "60vh" }}
                             >
-                                <h3 className="text-emerald-400 font-semibold text-base">
+                                <h3 className="text-blue-400 font-semibold text-base">
                                     ArthNiti — Terms of Use &amp; Disclaimer
                                 </h3>
 
@@ -471,7 +471,7 @@ export default function AuthPage() {
 
                                 {/* Scroll anchor — the user must reach this */}
                                 <div className="pt-4 pb-2 border-t border-[var(--color-border)] mt-6">
-                                    <p className="text-emerald-400 text-xs font-medium text-center">
+                                    <p className="text-blue-400 text-xs font-medium text-center">
                                         ✅ You have read the complete disclaimer.
                                     </p>
                                 </div>
@@ -492,7 +492,7 @@ export default function AuthPage() {
                                         setDisclaimerOpen(false);
                                     }}
                                     className={`px-5 py-2 rounded-xl text-sm font-medium transition-all ${disclaimerScrolledToBottom
-                                        ? "bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 border border-emerald-500/25"
+                                        ? "bg-blue-500/20 text-blue-300 hover:bg-blue-500/30 border border-blue-500/25"
                                         : "bg-[var(--color-bg-primary)]/60 text-[var(--color-text-dim)] border border-[var(--color-border)]"
                                         }`}
                                 >

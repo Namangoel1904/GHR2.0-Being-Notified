@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
     ChevronRight,
@@ -15,99 +15,99 @@ import {
     Brain,
     ArrowRight,
 } from "lucide-react";
-import Navbar from "@/components/Navbar";
 import { cn, API_BASE } from "@/lib/utils";
 
-// ─── 13 Financial Niti Questions (Indian Context) ───────────────────────────
+// ─── Types ──────────────────────────────────────────────────────────────────
 
 interface Question {
     id: string;
     question: string;
+    section: string;
+    sectionIcon: string;
     options?: string[];
-    type: "radio" | "slider";
+    type: "radio" | "slider" | "category_input" | "dropdown";
     sliderMin?: number;
     sliderMax?: number;
     sliderStep?: number;
     sliderUnit?: string;
+    sliderPrefix?: string;
+    optional?: boolean;
+    helperText?: string;
+    categories?: string[];
 }
 
+// ─── Section Colors ─────────────────────────────────────────────────────────
+
+const sectionColors: Record<string, string> = {
+    "Income & Spending": "from-blue-500 to-blue-600",
+    "Savings & Stability": "from-indigo-500 to-indigo-600",
+    "Behaviour & Personality": "from-violet-500 to-violet-600",
+    Goals: "from-sky-500 to-sky-600",
+};
+
+// ─── 13 ArthNiti Questions (New Spec) ───────────────────────────────────────
+
 const questions: Question[] = [
+    // ─── SECTION 1: Income & Spending ───
     {
-        id: "q1",
-        question: "What is your age bracket?",
-        type: "radio",
-        options: ["18-22", "23-27", "28-35", "36-45", "45+"],
+        id: "monthly_income",
+        section: "Income & Spending",
+        sectionIcon: "📊",
+        question: "What is your approximate monthly income?",
+        type: "slider",
+        sliderMin: 0,
+        sliderMax: 500000,
+        sliderStep: 1000,
+        sliderPrefix: "₹",
     },
     {
-        id: "q2",
-        question: "What is your approximate monthly income range?",
-        type: "radio",
-        options: [
-            "Below ₹25,000",
-            "₹25,000 – ₹50,000",
-            "₹50,000 – ₹1,00,000",
-            "₹1,00,000 – ₹2,00,000",
-            "Above ₹2,00,000",
+        id: "savings_percentage",
+        section: "Income & Spending",
+        sectionIcon: "📊",
+        question: "On average, how much of your income do you save each month?",
+        type: "slider",
+        sliderMin: 0,
+        sliderMax: 100,
+        sliderStep: 1,
+        sliderUnit: "%",
+    },
+    {
+        id: "category_spending",
+        section: "Income & Spending",
+        sectionIcon: "📊",
+        question: "How much do you spend category-wise per month?",
+        type: "category_input",
+        categories: [
+            "Rent / Housing",
+            "Food & Dining",
+            "Shopping / Lifestyle",
+            "Bills & Utilities",
+            "Transportation",
+            "Family Expenses",
+            "Subscriptions & Entertainment",
         ],
     },
     {
-        id: "q3",
-        question: "What is your approximate monthly expense range (rent, food, commute, recharges)?",
-        type: "radio",
-        options: [
-            "Below ₹15,000",
-            "₹15,000 – ₹30,000",
-            "₹30,000 – ₹60,000",
-            "₹60,000 – ₹1,00,000",
-            "Above ₹1,00,000",
-        ],
-    },
-    {
-        id: "q4",
-        question: "How much do you currently have in savings (bank + FDs + liquid funds)?",
-        type: "radio",
-        options: [
-            "Less than ₹25,000",
-            "₹25,000 – ₹1,00,000",
-            "₹1,00,000 – ₹5,00,000",
-            "₹5,00,000 – ₹15,00,000",
-            "Above ₹15,00,000",
-        ],
-    },
-    {
-        id: "q5",
+        id: "debt_status",
+        section: "Income & Spending",
+        sectionIcon: "📊",
         question:
-            "Do you have any active debts? (Personal loans, credit card EMIs, education loans)",
+            "Do you currently have any EMIs, loans, or debt obligations?",
         type: "radio",
         options: [
-            "No debt at all",
-            "Only education loan",
-            "Credit card dues (manageable)",
-            "Multiple EMIs (personal + credit card)",
-            "High-interest debt (>15% APR)",
+            "No debt",
+            "Small & manageable",
+            "Moderate debt burden",
+            "High debt burden",
+            "Prefer not to disclose",
         ],
     },
+
+    // ─── SECTION 2: Savings & Financial Stability ───
     {
-        id: "q6",
-        question: "What percentage of your monthly income goes towards EMI/loan repayments?",
-        type: "radio",
-        options: ["0% (no EMIs)", "1-15%", "15-30%", "30-50%", "More than 50%"],
-    },
-    {
-        id: "q7",
-        question:
-            "How many months of expenses can you cover from emergency reserves? (Include FDs, gold, family support)",
-        type: "radio",
-        options: [
-            "Less than 1 month",
-            "1-2 months",
-            "3-4 months",
-            "5-6 months",
-            "More than 6 months",
-        ],
-    },
-    {
-        id: "q8",
+        id: "insurance_coverage",
+        section: "Savings & Stability",
+        sectionIcon: "💰",
         question: "Do you have health & life insurance coverage?",
         type: "radio",
         options: [
@@ -119,59 +119,116 @@ const questions: Question[] = [
         ],
     },
     {
-        id: "q9",
-        question: "What is your investment experience?",
+        id: "emergency_fund",
+        section: "Savings & Stability",
+        sectionIcon: "💰",
+        question: "Do you have an emergency fund?",
         type: "radio",
         options: [
-            "Never invested",
-            "Only fixed deposits / PPF / RD",
-            "Mutual funds (SIPs)",
-            "Stocks + Mutual funds",
-            "Diversified (Stocks, MFs, Crypto, Real Estate)",
+            "No emergency fund",
+            "Less than 1 month of expenses",
+            "1–3 months",
+            "3–6 months",
+            "More than 6 months",
         ],
     },
     {
-        id: "q10",
-        question: "If your investments dropped 25% in one month, what would you do?",
+        id: "unexpected_expenses",
+        section: "Savings & Stability",
+        sectionIcon: "💰",
+        question: "How do you handle unexpected expenses?",
         type: "radio",
         options: [
-            "Sell everything immediately — can't handle losses",
-            "Sell partial to protect capital",
-            "Hold steady and wait for recovery",
-            "Buy more — it's a discount opportunity",
+            "Use savings",
+            "Reduce other spending",
+            "Use credit/borrow",
+            "Delay and manage later",
+        ],
+    },
+
+    // ─── SECTION 3: Behaviour, Budgeting & Personality ───
+    {
+        id: "budget_habit",
+        section: "Behaviour & Personality",
+        sectionIcon: "🧠",
+        question: "Do you currently follow a monthly budget?",
+        type: "radio",
+        options: [
+            "Yes, strictly",
+            "Yes, but loosely",
+            "I try but don't track properly",
+            "No, I don't budget",
         ],
     },
     {
-        id: "q11",
+        id: "financial_style",
+        section: "Behaviour & Personality",
+        sectionIcon: "🧠",
+        question: "Which statement describes your financial style best?",
+        type: "radio",
+        options: [
+            "I prefer saving and avoiding financial risks",
+            "I balance spending and saving carefully",
+            "I enjoy spending and worry about savings later",
+            "I don't actively plan my finances",
+        ],
+    },
+    {
+        id: "risk_comfort",
+        section: "Behaviour & Personality",
+        sectionIcon: "🧠",
+        question: "How comfortable are you with financial uncertainty?",
+        type: "radio",
+        options: [
+            "Not comfortable at all",
+            "Slightly uncomfortable",
+            "Comfortable if planned",
+            "Very comfortable",
+        ],
+    },
+
+    // ─── SECTION 4: Goals ───
+    {
+        id: "primary_goal",
+        section: "Goals",
+        sectionIcon: "🎯",
         question: "What is your primary financial goal right now?",
         type: "radio",
         options: [
-            "Clear all debt / EMIs first",
-            "Build an emergency fund",
-            "Start investing for wealth creation",
-            "Save for a major purchase (car, home, wedding)",
-            "Plan for retirement / financial independence",
+            "Building an emergency fund",
+            "Better budgeting & expense control",
+            "Paying off debts/EMIs",
+            "Saving for a major goal (car, business, education, etc.)",
+            "Improving saving discipline",
+            "Just understanding my finances better",
+            "Not sure yet",
         ],
     },
     {
-        id: "q12",
-        question: "What percentage of your income are you willing to commit to savings/investments?",
+        id: "goal_amount",
+        section: "Goals",
+        sectionIcon: "🎯",
+        question: "What is your target goal amount?",
         type: "slider",
         sliderMin: 0,
-        sliderMax: 50,
-        sliderStep: 5,
-        sliderUnit: "%",
+        sliderMax: 5000000,
+        sliderStep: 10000,
+        sliderPrefix: "₹",
+        optional: true,
+        helperText: "Leave at ₹0 if unsure. AI will estimate.",
     },
     {
-        id: "q13",
-        question: "What is your financial goal timeline?",
-        type: "radio",
+        id: "goal_timeframe",
+        section: "Goals",
+        sectionIcon: "🎯",
+        question: "What is your expected timeframe to achieve this goal?",
+        type: "dropdown",
         options: [
-            "Immediate (< 6 months)",
-            "Short-term (6 months – 2 years)",
-            "Medium-term (2 – 5 years)",
-            "Long-term (5 – 10 years)",
-            "Very long-term (10+ years / retirement)",
+            "Less than 1 year",
+            "1–3 years",
+            "3–5 years",
+            "5+ years",
+            "Not sure",
         ],
     },
 ];
@@ -192,7 +249,7 @@ function InsightCardUI({
     const priorityColors: Record<string, string> = {
         high: "border-red-500/30 bg-red-500/5",
         medium: "border-yellow-500/30 bg-yellow-500/5",
-        low: "border-emerald-500/30 bg-emerald-500/5",
+        low: "border-blue-500/30 bg-blue-500/5",
     };
 
     return (
@@ -206,7 +263,7 @@ function InsightCardUI({
             )}
         >
             <div className="flex items-start gap-3">
-                <Sparkles className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
+                <Sparkles className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
                 <div>
                     <h4 className="font-semibold text-[var(--color-text-primary)] mb-1">
                         {title}
@@ -236,10 +293,10 @@ function ResultCard({ result }: { result: OnboardingResult }) {
     const progress = (result.health_score / 100) * circumference;
     const color =
         result.health_score >= 75
-            ? "#34d399"
+            ? "#3b82f6"
             : result.health_score >= 50
-                ? "#fbbf24"
-                : "#f87171";
+                ? "#f59e0b"
+                : "#ef4444";
 
     const [showReasoning, setShowReasoning] = useState(false);
 
@@ -256,9 +313,9 @@ function ResultCard({ result }: { result: OnboardingResult }) {
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
                     transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-                    className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-emerald-500/15 flex items-center justify-center"
+                    className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-blue-500/15 flex items-center justify-center"
                 >
-                    <Brain className="w-7 h-7 text-emerald-400" />
+                    <Brain className="w-7 h-7 text-blue-500" />
                 </motion.div>
 
                 <h2 className="text-xl font-bold text-[var(--color-text-primary)] mb-2">
@@ -270,7 +327,7 @@ function ResultCard({ result }: { result: OnboardingResult }) {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.3 }}
-                    className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-sm font-medium mb-6"
+                    className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-600 text-sm font-medium mb-6"
                 >
                     <Award className="w-4 h-4" />
                     {result.personality_badge}
@@ -297,9 +354,17 @@ function ResultCard({ result }: { result: OnboardingResult }) {
                             strokeLinecap="round"
                             strokeDasharray={circumference}
                             initial={{ strokeDashoffset: circumference }}
-                            animate={{ strokeDashoffset: circumference - progress }}
-                            transition={{ duration: 1.5, ease: "easeOut", delay: 0.5 }}
-                            style={{ filter: `drop-shadow(0 0 10px ${color}60)` }}
+                            animate={{
+                                strokeDashoffset: circumference - progress,
+                            }}
+                            transition={{
+                                duration: 1.5,
+                                ease: "easeOut",
+                                delay: 0.5,
+                            }}
+                            style={{
+                                filter: `drop-shadow(0 0 10px ${color}60)`,
+                            }}
                         />
                     </svg>
                     <div className="absolute inset-0 flex flex-col items-center justify-center">
@@ -321,16 +386,20 @@ function ResultCard({ result }: { result: OnboardingResult }) {
                 {/* Summary Stats */}
                 <div className="flex items-center justify-center gap-6 text-sm mt-4">
                     <div className="flex items-center gap-1.5">
-                        <Shield className="w-4 h-4 text-emerald-400" />
-                        <span className="text-[var(--color-text-muted)]">Risk:</span>
-                        <span className="text-emerald-300 font-medium">
+                        <Shield className="w-4 h-4 text-blue-500" />
+                        <span className="text-[var(--color-text-muted)]">
+                            Risk:
+                        </span>
+                        <span className="text-blue-600 font-medium">
                             {result.risk_category}
                         </span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                        <Target className="w-4 h-4 text-emerald-400" />
-                        <span className="text-[var(--color-text-muted)]">Savings:</span>
-                        <span className="text-emerald-300 font-medium">
+                        <Target className="w-4 h-4 text-blue-500" />
+                        <span className="text-[var(--color-text-muted)]">
+                            Savings:
+                        </span>
+                        <span className="text-blue-600 font-medium">
                             {Math.round(result.savings_ratio * 100)}%
                         </span>
                     </div>
@@ -340,7 +409,7 @@ function ResultCard({ result }: { result: OnboardingResult }) {
             {/* AI Insight Cards */}
             <div className="space-y-3">
                 <h3 className="text-sm font-semibold text-[var(--color-text-muted)] uppercase tracking-wider flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-emerald-400" />
+                    <Sparkles className="w-4 h-4 text-blue-500" />
                     AI-Powered Insights
                 </h3>
                 {result.ai_insights.map((insight, i) => (
@@ -359,7 +428,7 @@ function ResultCard({ result }: { result: OnboardingResult }) {
                 <div className="card p-4">
                     <button
                         onClick={() => setShowReasoning(!showReasoning)}
-                        className="flex items-center gap-2 text-sm text-[var(--color-text-muted)] hover:text-emerald-300 transition-colors w-full"
+                        className="flex items-center gap-2 text-sm text-[var(--color-text-muted)] hover:text-blue-500 transition-colors w-full"
                     >
                         <Brain className="w-4 h-4" />
                         {showReasoning ? "Hide" : "View"} AI Reasoning
@@ -393,7 +462,7 @@ function ResultCard({ result }: { result: OnboardingResult }) {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 1.5 }}
                 onClick={() => (window.location.href = "/dashboard")}
-                className="w-full py-3.5 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 text-white font-semibold text-sm hover:from-emerald-500 hover:to-emerald-400 transition-all shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-2"
+                className="w-full py-3.5 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 text-white font-semibold text-sm hover:from-blue-500 hover:to-blue-400 transition-all shadow-lg shadow-blue-500/25 flex items-center justify-center gap-2"
             >
                 Go to Dashboard <ArrowRight className="w-4 h-4" />
             </motion.button>
@@ -401,19 +470,45 @@ function ResultCard({ result }: { result: OnboardingResult }) {
     );
 }
 
+// ─── Format helpers ─────────────────────────────────────────────────────────
+
+function formatINR(value: number): string {
+    if (value >= 100000) return `₹${(value / 100000).toFixed(1)}L`;
+    if (value >= 1000) return `₹${(value / 1000).toFixed(0)}K`;
+    return `₹${value}`;
+}
+
 // ─── Main Page ──────────────────────────────────────────────────────────────
 
 export default function OnboardingPage() {
     const [currentQ, setCurrentQ] = useState(0);
-    const [answers, setAnswers] = useState<Record<string, number | string>>({});
+    const [answers, setAnswers] = useState<Record<string, number | string | Record<string, number>>>({});
     const [result, setResult] = useState<OnboardingResult | null>(null);
     const [loading, setLoading] = useState(false);
     const [aiStatus, setAiStatus] = useState("");
+
+    // Gate: if already onboarded, redirect to dashboard (can't redo)
+    const [ready, setReady] = useState(false);
+    useEffect(() => {
+        const existing = localStorage.getItem("onboarding_profile");
+        if (existing) {
+            window.location.href = "/dashboard";
+            return;
+        }
+        setReady(true);
+    }, []);
 
     const q = questions[currentQ];
 
     const handleSelect = (value: number | string) => {
         setAnswers((prev) => ({ ...prev, [q.id]: value }));
+    };
+
+    const handleCategoryInput = (category: string, value: number) => {
+        setAnswers((prev) => {
+            const existing = (prev[q.id] as Record<string, number>) || {};
+            return { ...prev, [q.id]: { ...existing, [category]: value } };
+        });
     };
 
     const submitQuestionnaire = useCallback(async () => {
@@ -428,6 +523,10 @@ export default function OnboardingPage() {
             const raw = answers[question.id];
             if (question.type === "slider") {
                 structuredAnswers[question.id] = raw;
+            } else if (question.type === "category_input") {
+                structuredAnswers[question.id] = raw; // already a Record<string, number>
+            } else if (question.type === "dropdown") {
+                structuredAnswers[question.id] = raw; // string value
             } else if (typeof raw === "number" && question.options) {
                 structuredAnswers[question.id] = raw;
                 structuredAnswers[`${question.id}_label`] =
@@ -436,7 +535,9 @@ export default function OnboardingPage() {
         });
 
         try {
-            setAiStatus("🧠 DeepSeek-R1 is analyzing your financial profile...");
+            setAiStatus(
+                "🧠 DeepSeek-R1 is analyzing your financial profile..."
+            );
 
             const res = await fetch(`${API_BASE}/api/onboarding/submit`, {
                 method: "POST",
@@ -450,8 +551,15 @@ export default function OnboardingPage() {
             const data = await res.json();
 
             if (data.success) {
-                // Store profile in localStorage for dashboard
-                localStorage.setItem("onboarding_profile", JSON.stringify(data));
+                // Store profile and raw answers in localStorage for dashboard
+                localStorage.setItem(
+                    "onboarding_profile",
+                    JSON.stringify(data)
+                );
+                localStorage.setItem(
+                    "questionnaire_answers",
+                    JSON.stringify(answers)
+                );
                 setResult(data);
             } else {
                 setAiStatus(`Error: ${data.message}`);
@@ -460,16 +568,17 @@ export default function OnboardingPage() {
             setAiStatus("⚠️ AI unavailable — using fallback analysis...");
             // Use fallback after a brief delay
             setTimeout(() => {
+                const income = (answers["monthly_income"] as number) || 50000;
+                const savingsPct = (answers["savings_percentage"] as number) || 10;
                 const fallback: OnboardingResult = {
-                    health_score: 62,
+                    health_score: Math.min(100, Math.max(20, Math.round(savingsPct * 2 + 40))),
                     personality_badge: "The Balanced Navigator",
                     risk_category: "Moderate",
-                    savings_ratio: 0.15,
+                    savings_ratio: savingsPct / 100,
                     ai_insights: [
                         {
                             title: "Build Your Emergency Fund",
-                            description:
-                                "Aim for 3-6 months of expenses in liquid funds or FDs. Gold and family support also count.",
+                            description: `Based on your ₹${income.toLocaleString("en-IN")} monthly income, aim for 3-6 months of expenses in liquid funds or FDs. Gold and family support also count.`,
                             priority: "high",
                         },
                         {
@@ -479,29 +588,60 @@ export default function OnboardingPage() {
                             priority: "medium",
                         },
                         {
-                            title: "Clear High-Interest EMIs",
+                            title: "Review Your Spending Categories",
                             description:
-                                "Credit card debt above 15% APR should be cleared before investing — it's the best 'return' you can earn.",
+                                "Your category-wise data shows opportunities to optimize. Focus on reducing discretionary spending first.",
                             priority: "high",
                         },
                     ],
-                    ai_reasoning: "Fallback analysis — AI was unreachable.",
+                    ai_reasoning:
+                        "Fallback analysis — AI was unreachable.",
                 };
-                localStorage.setItem("onboarding_profile", JSON.stringify(fallback));
+                localStorage.setItem(
+                    "onboarding_profile",
+                    JSON.stringify(fallback)
+                );
+                localStorage.setItem(
+                    "questionnaire_answers",
+                    JSON.stringify(answers)
+                );
                 setResult(fallback);
             }, 1500);
         }
         setLoading(false);
     }, [answers]);
 
+    // Don't render until readiness check passes (placed after ALL hooks)
+    if (!ready) {
+        return (
+            <div className="min-h-screen flex items-center justify-center">
+                <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+            </div>
+        );
+    }
+
     const progress = ((currentQ + 1) / questions.length) * 100;
-    const isAnswered = answers[q?.id] !== undefined;
+
+    // Check if current question is answered
+    const isAnswered = (() => {
+        if (q.optional) return true; // optional questions always pass
+        const val = answers[q.id];
+        if (val === undefined) return false;
+        if (q.type === "category_input") {
+            // At least one category must have a value > 0
+            const cats = val as Record<string, number>;
+            return Object.values(cats).some((v) => v > 0);
+        }
+        return true;
+    })();
+
+    // Check section change for section header
+    const isNewSection = currentQ === 0 || q.section !== questions[currentQ - 1]?.section;
 
     // ── Result screen ──
     if (result) {
         return (
             <div className="min-h-screen">
-                <Navbar />
                 <main className="max-w-7xl mx-auto px-4 pt-24 pb-12">
                     <ResultCard result={result} />
                 </main>
@@ -513,8 +653,7 @@ export default function OnboardingPage() {
     if (loading) {
         return (
             <div className="min-h-screen">
-                <Navbar />
-                <main className="max-w-2xl mx-auto px-4 pt-24 pb-12">
+                <main className="max-w-2xl mx-auto px-4 pt-12 pb-12">
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
@@ -522,10 +661,14 @@ export default function OnboardingPage() {
                     >
                         <motion.div
                             animate={{ rotate: 360 }}
-                            transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
-                            className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-emerald-500/15 flex items-center justify-center"
+                            transition={{
+                                repeat: Infinity,
+                                duration: 2,
+                                ease: "linear",
+                            }}
+                            className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-blue-500/15 flex items-center justify-center"
                         >
-                            <Brain className="w-8 h-8 text-emerald-400" />
+                            <Brain className="w-8 h-8 text-blue-500" />
                         </motion.div>
                         <h2 className="text-xl font-bold text-[var(--color-text-primary)] mb-2">
                             ArthNiti is Analyzing...
@@ -543,7 +686,7 @@ export default function OnboardingPage() {
                                         duration: 1.2,
                                         delay: i * 0.2,
                                     }}
-                                    className="w-2 h-2 rounded-full bg-emerald-400"
+                                    className="w-2 h-2 rounded-full bg-blue-500"
                                 />
                             ))}
                         </div>
@@ -556,8 +699,7 @@ export default function OnboardingPage() {
     // ── Questionnaire ──
     return (
         <div className="min-h-screen">
-            <Navbar />
-            <main className="max-w-2xl mx-auto px-4 pt-24 pb-12">
+            <main className="max-w-2xl mx-auto px-4 pt-12 pb-12">
                 {/* Header */}
                 <motion.div
                     initial={{ opacity: 0, y: -10 }}
@@ -565,31 +707,52 @@ export default function OnboardingPage() {
                     className="text-center mb-8"
                 >
                     <h1 className="text-2xl font-bold text-[var(--color-text-primary)]">
-                        Financial <span className="text-gradient">Niti</span> Profile
+                        Financial{" "}
+                        <span className="text-gradient">Niti</span> Profile
                     </h1>
                     <p className="text-[var(--color-text-muted)] text-sm mt-1">
-                        Answer 13 questions — AI will build your personalized financial strategy
+                        Answer 13 questions — AI will build your personalized
+                        financial strategy
                     </p>
                 </motion.div>
 
                 {/* Progress Bar */}
-                <div className="mb-8">
+                <div className="mb-6">
                     <div className="flex items-center justify-between mb-2">
                         <span className="text-sm text-[var(--color-text-muted)]">
                             Question {currentQ + 1} of {questions.length}
                         </span>
-                        <span className="text-sm text-emerald-400 font-medium">
+                        <span className="text-sm text-blue-500 font-medium">
                             {Math.round(progress)}%
                         </span>
                     </div>
-                    <div className="h-1.5 rounded-full bg-[var(--color-bg-card)] overflow-hidden">
+                    <div className="h-1.5 rounded-full bg-[var(--color-border)] overflow-hidden">
                         <motion.div
-                            className="h-full rounded-full bg-gradient-to-r from-emerald-600 to-emerald-400"
+                            className="h-full rounded-full bg-gradient-to-r from-blue-600 to-blue-400"
                             animate={{ width: `${progress}%` }}
                             transition={{ duration: 0.3 }}
                         />
                     </div>
                 </div>
+
+                {/* Section badge */}
+                {isNewSection && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="mb-4"
+                    >
+                        <span
+                            className={cn(
+                                "inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-white text-xs font-medium bg-gradient-to-r",
+                                sectionColors[q.section] || "from-blue-500 to-blue-600"
+                            )}
+                        >
+                            <span>{q.sectionIcon}</span>
+                            {q.section}
+                        </span>
+                    </motion.div>
+                )}
 
                 {/* Question Card */}
                 <AnimatePresence mode="wait">
@@ -605,6 +768,12 @@ export default function OnboardingPage() {
                             {q.question}
                         </h2>
 
+                        {q.optional && (
+                            <p className="text-xs text-[var(--color-text-dim)] mb-4 italic">
+                                {q.helperText || "This question is optional."}
+                            </p>
+                        )}
+
                         {/* Radio options */}
                         {q.type === "radio" && q.options && (
                             <div className="space-y-3">
@@ -619,8 +788,8 @@ export default function OnboardingPage() {
                                             className={cn(
                                                 "w-full text-left p-4 rounded-xl border transition-all text-sm",
                                                 selected
-                                                    ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-200"
-                                                    : "border-[var(--color-border)] bg-[var(--color-bg-primary)]/40 text-[var(--color-text-muted)] hover:border-[var(--color-border-hover)]"
+                                                    ? "border-blue-500/40 bg-blue-50 text-blue-700"
+                                                    : "border-[var(--color-border)] bg-white text-[var(--color-text-muted)] hover:border-[var(--color-border-hover)]"
                                             )}
                                         >
                                             <div className="flex items-center gap-3">
@@ -628,12 +797,12 @@ export default function OnboardingPage() {
                                                     className={cn(
                                                         "w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0",
                                                         selected
-                                                            ? "border-emerald-400 bg-emerald-500/20"
+                                                            ? "border-blue-500 bg-blue-500/20"
                                                             : "border-[var(--color-text-dim)]"
                                                     )}
                                                 >
                                                     {selected && (
-                                                        <div className="w-2 h-2 rounded-full bg-emerald-400" />
+                                                        <div className="w-2 h-2 rounded-full bg-blue-500" />
                                                     )}
                                                 </div>
                                                 {option}
@@ -644,25 +813,73 @@ export default function OnboardingPage() {
                             </div>
                         )}
 
-                        {/* Slider for Q12 */}
+                        {/* Dropdown */}
+                        {q.type === "dropdown" && q.options && (
+                            <div className="space-y-3">
+                                {q.options.map((option, i) => {
+                                    const selected = answers[q.id] === option;
+                                    return (
+                                        <motion.button
+                                            key={i}
+                                            whileHover={{ scale: 1.01 }}
+                                            whileTap={{ scale: 0.99 }}
+                                            onClick={() => handleSelect(option)}
+                                            className={cn(
+                                                "w-full text-left p-4 rounded-xl border transition-all text-sm",
+                                                selected
+                                                    ? "border-blue-500/40 bg-blue-50 text-blue-700"
+                                                    : "border-[var(--color-border)] bg-white text-[var(--color-text-muted)] hover:border-[var(--color-border-hover)]"
+                                            )}
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <div
+                                                    className={cn(
+                                                        "w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0",
+                                                        selected
+                                                            ? "border-blue-500 bg-blue-500/20"
+                                                            : "border-[var(--color-text-dim)]"
+                                                    )}
+                                                >
+                                                    {selected && (
+                                                        <div className="w-2 h-2 rounded-full bg-blue-500" />
+                                                    )}
+                                                </div>
+                                                {option}
+                                            </div>
+                                        </motion.button>
+                                    );
+                                })}
+                            </div>
+                        )}
+
+                        {/* Slider */}
                         {q.type === "slider" && (
                             <div className="space-y-6 py-4">
                                 <div className="text-center">
-                                    <span className="text-5xl font-bold text-emerald-400">
-                                        {answers[q.id] ??
-                                            q.sliderMin ??
-                                            0}
+                                    <span className="text-4xl font-bold text-blue-600">
+                                        {q.sliderPrefix || ""}
+                                        {q.sliderPrefix === "₹"
+                                            ? (
+                                                (answers[q.id] as number) ??
+                                                q.sliderMin ??
+                                                0
+                                            ).toLocaleString("en-IN")
+                                            : ((answers[q.id] as number) ??
+                                                q.sliderMin ??
+                                                0)}
                                     </span>
-                                    <span className="text-2xl text-[var(--color-text-muted)] ml-1">
-                                        {q.sliderUnit}
-                                    </span>
+                                    {q.sliderUnit && (
+                                        <span className="text-2xl text-[var(--color-text-muted)] ml-1">
+                                            {q.sliderUnit}
+                                        </span>
+                                    )}
                                 </div>
 
                                 <input
                                     type="range"
                                     min={q.sliderMin ?? 0}
                                     max={q.sliderMax ?? 100}
-                                    step={q.sliderStep ?? 5}
+                                    step={q.sliderStep ?? 1}
                                     value={
                                         answers[q.id] !== undefined
                                             ? Number(answers[q.id])
@@ -671,22 +888,69 @@ export default function OnboardingPage() {
                                     onChange={(e) =>
                                         handleSelect(Number(e.target.value))
                                     }
-                                    className="w-full h-2 rounded-full appearance-none cursor-pointer bg-[var(--color-bg-primary)] accent-emerald-500"
+                                    className="w-full h-2 rounded-full appearance-none cursor-pointer bg-[var(--color-border)] accent-blue-500"
                                 />
 
                                 <div className="flex justify-between text-xs text-[var(--color-text-dim)]">
                                     <span>
+                                        {q.sliderPrefix || ""}
                                         {q.sliderMin ?? 0}
-                                        {q.sliderUnit}
+                                        {q.sliderUnit || ""}
                                     </span>
-                                    <span className="text-emerald-400/60 text-[10px]">
-                                        50-30-20 suggests ≥ 20%
-                                    </span>
+                                    {q.id === "savings_percentage" && (
+                                        <span className="text-blue-500/60 text-[10px]">
+                                            50-30-20 suggests ≥ 20%
+                                        </span>
+                                    )}
                                     <span>
-                                        {q.sliderMax ?? 100}
-                                        {q.sliderUnit}
+                                        {q.sliderPrefix || ""}
+                                        {q.sliderPrefix === "₹"
+                                            ? (q.sliderMax ?? 0).toLocaleString("en-IN")
+                                            : (q.sliderMax ?? 100)}
+                                        {q.sliderUnit || ""}
                                     </span>
                                 </div>
+                            </div>
+                        )}
+
+                        {/* Category Input (fill-in-the-blank) */}
+                        {q.type === "category_input" && q.categories && (
+                            <div className="space-y-3">
+                                {q.categories.map((cat) => {
+                                    const catAnswers =
+                                        (answers[q.id] as Record<string, number>) || {};
+                                    return (
+                                        <div
+                                            key={cat}
+                                            className="flex items-center gap-3 p-3 rounded-xl border border-[var(--color-border)] bg-white"
+                                        >
+                                            <span className="text-sm text-[var(--color-text-secondary)] flex-1 min-w-0">
+                                                {cat}
+                                            </span>
+                                            <div className="flex items-center gap-1 flex-shrink-0">
+                                                <span className="text-sm text-[var(--color-text-muted)]">
+                                                    ₹
+                                                </span>
+                                                <input
+                                                    type="number"
+                                                    min={0}
+                                                    placeholder="0"
+                                                    value={catAnswers[cat] || ""}
+                                                    onChange={(e) =>
+                                                        handleCategoryInput(
+                                                            cat,
+                                                            Number(e.target.value) || 0
+                                                        )
+                                                    }
+                                                    className="w-24 px-3 py-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] text-sm text-right focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400/30 transition-all"
+                                                />
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                                <p className="text-xs text-[var(--color-text-dim)] mt-2">
+                                    💡 Enter approximate monthly amounts. Leave 0 for categories that don&apos;t apply.
+                                </p>
                             </div>
                         )}
                     </motion.div>
@@ -706,7 +970,7 @@ export default function OnboardingPage() {
                         <button
                             onClick={() => setCurrentQ((i) => i + 1)}
                             disabled={!isAnswered}
-                            className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-500 disabled:opacity-30 transition-all shadow-lg shadow-emerald-500/20"
+                            className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-medium hover:bg-blue-500 disabled:opacity-30 transition-all shadow-lg shadow-blue-500/20"
                         >
                             Next <ChevronRight className="w-4 h-4" />
                         </button>
@@ -714,11 +978,12 @@ export default function OnboardingPage() {
                         <button
                             onClick={submitQuestionnaire}
                             disabled={!isAnswered || loading}
-                            className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 text-white text-sm font-semibold hover:from-emerald-500 hover:to-emerald-400 disabled:opacity-30 transition-all shadow-lg shadow-emerald-500/25"
+                            className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 text-white text-sm font-semibold hover:from-blue-500 hover:to-blue-400 disabled:opacity-30 transition-all shadow-lg shadow-blue-500/25"
                         >
                             {loading ? (
                                 <>
-                                    <Loader2 className="w-4 h-4 animate-spin" /> Analyzing...
+                                    <Loader2 className="w-4 h-4 animate-spin" />{" "}
+                                    Analyzing...
                                 </>
                             ) : (
                                 <>

@@ -19,28 +19,28 @@ const features = [
     title: "Passwordless Auth",
     description:
       "FIDO2 passkeys & biometrics. Your phone becomes your hardware token via Bluetooth hybrid transport.",
-    gradient: "from-emerald-500/20 to-emerald-600/10",
+    gradient: "from-blue-500/20 to-blue-600/10",
   },
   {
     icon: Brain,
     title: "Local AI Engine",
     description:
       "DeepSeek-R1 runs on your GPU. Your financial data never touches a cloud server. Ever.",
-    gradient: "from-emerald-400/20 to-emerald-500/10",
+    gradient: "from-blue-400/20 to-blue-500/10",
   },
   {
     icon: Eye,
     title: "Explainable AI (XAI)",
     description:
       "See the AI's Chain-of-Thought reasoning. No black boxes — every suggestion is transparent.",
-    gradient: "from-emerald-300/20 to-emerald-400/10",
+    gradient: "from-blue-300/20 to-blue-400/10",
   },
   {
     icon: Lock,
     title: "AES-256 Encryption",
     description:
       "Financial data encrypted at rest with AES-256-GCM. Even the database sees only ciphertext.",
-    gradient: "from-emerald-600/20 to-emerald-700/10",
+    gradient: "from-blue-600/20 to-blue-700/10",
   },
 ];
 
@@ -49,16 +49,16 @@ export default function LandingPage() {
     <div className="min-h-screen dot-pattern">
       {/* Background effects */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-emerald-500/5 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-emerald-600/3 rounded-full blur-3xl" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-blue-500/5 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-blue-600/3 rounded-full blur-3xl" />
       </div>
 
       {/* Navbar */}
       <nav className="relative z-10 px-4 py-6">
         <div className="mx-auto max-w-6xl flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/15 flex items-center justify-center glow-emerald">
-              <Shield className="w-5 h-5 text-emerald-400" />
+            <div className="w-10 h-10 rounded-xl bg-blue-500/15 flex items-center justify-center glow-blue">
+              <Shield className="w-5 h-5 text-blue-400" />
             </div>
             <span className="text-xl font-bold tracking-tight">
               <span className="text-gradient">Fin</span>Aegis
@@ -66,7 +66,7 @@ export default function LandingPage() {
           </div>
           <Link
             href="/auth"
-            className="px-5 py-2.5 rounded-xl bg-emerald-600/80 hover:bg-emerald-500 text-white text-sm font-medium transition-all flex items-center gap-2 shadow-lg shadow-emerald-500/20"
+            className="px-5 py-2.5 rounded-xl bg-blue-600/80 hover:bg-blue-500 text-white text-sm font-medium transition-all flex items-center gap-2 shadow-lg shadow-blue-500/20"
           >
             <Fingerprint className="w-4 h-4" />
             Get Started
@@ -82,7 +82,7 @@ export default function LandingPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
           >
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs font-medium mb-8">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-300 text-xs font-medium mb-8">
               <Cpu className="w-3 h-3" />
               Powered by Local AI — Zero Cloud Dependency
             </div>
@@ -101,7 +101,7 @@ export default function LandingPage() {
 
             <p className="text-lg md:text-xl text-[var(--color-text-muted)] max-w-2xl mx-auto mb-10 leading-relaxed">
               AI-powered financial advisory that runs{" "}
-              <span className="text-emerald-300 font-medium">
+              <span className="text-blue-300 font-medium">
                 entirely on your machine
               </span>
               . Passwordless auth. AES-256 encryption. Explainable insights that
@@ -111,14 +111,14 @@ export default function LandingPage() {
             <div className="flex items-center justify-center gap-4">
               <Link
                 href="/auth"
-                className="px-8 py-4 rounded-2xl bg-gradient-to-r from-emerald-600 to-emerald-500 text-white font-semibold text-lg flex items-center gap-2.5 hover:from-emerald-500 hover:to-emerald-400 transition-all shadow-2xl shadow-emerald-500/25 glow-emerald-strong"
+                className="px-8 py-4 rounded-2xl bg-gradient-to-r from-blue-600 to-blue-500 text-white font-semibold text-lg flex items-center gap-2.5 hover:from-blue-500 hover:to-blue-400 transition-all shadow-2xl shadow-blue-500/25 glow-blue-strong"
               >
                 Start Now — It&apos;s Free
                 <ArrowRight className="w-5 h-5" />
               </Link>
               <Link
                 href="/dashboard"
-                className="px-8 py-4 rounded-2xl border border-[var(--color-border)] text-[var(--color-text-secondary)] font-medium text-lg hover:border-emerald-500/30 hover:bg-[var(--color-bg-card)] transition-all"
+                className="px-8 py-4 rounded-2xl border border-[var(--color-border)] text-[var(--color-text-secondary)] font-medium text-lg hover:border-blue-500/30 hover:bg-[var(--color-bg-card)] transition-all"
               >
                 View Demo
               </Link>
@@ -147,8 +147,8 @@ export default function LandingPage() {
                 whileHover={{ y: -4 }}
                 className={`card p-8 bg-gradient-to-br ${feature.gradient}`}
               >
-                <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center mb-5">
-                  <feature.icon className="w-6 h-6 text-emerald-400" />
+                <div className="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center mb-5">
+                  <feature.icon className="w-6 h-6 text-blue-400" />
                 </div>
                 <h3 className="text-xl font-bold text-[var(--color-text-primary)] mb-2">
                   {feature.title}
@@ -165,8 +165,8 @@ export default function LandingPage() {
       {/* Security Banner */}
       <section className="relative z-10 px-4 pb-20">
         <div className="mx-auto max-w-3xl text-center">
-          <div className="glass-strong rounded-3xl p-10 glow-emerald">
-            <Sparkles className="w-8 h-8 text-emerald-400 mx-auto mb-4" />
+          <div className="glass-strong rounded-3xl p-10 glow-blue">
+            <Sparkles className="w-8 h-8 text-blue-400 mx-auto mb-4" />
             <h2 className="text-2xl font-bold text-[var(--color-text-primary)] mb-3">
               Built for National Hackathon Standards
             </h2>
@@ -176,7 +176,7 @@ export default function LandingPage() {
             </p>
             <div className="flex items-center justify-center gap-6 text-sm text-[var(--color-text-dim)]">
               <span className="flex items-center gap-1.5">
-                <Shield className="w-4 h-4 text-emerald-500" />
+                <Shield className="w-4 h-4 text-blue-500" />
                 FIDO2
               </span>
               <span>•</span>

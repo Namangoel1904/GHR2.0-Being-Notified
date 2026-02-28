@@ -1,47 +1,47 @@
 @import "tailwindcss";
 
-/* ─── GHR2.0 Dark Emerald Fintech Theme ─── */
+/* ─── ArthNiti Light Blue Theme ─── */
 
 @theme inline {
-  /* Base palette */
-  --color-bg-primary: #0a0f0d;
-  --color-bg-secondary: #111a16;
-  --color-bg-card: #162119;
-  --color-bg-card-hover: #1c2b23;
-  --color-bg-elevated: #1e3028;
+  /* Base palette (Light Mode) */
+  --color-bg-primary: #ffffff;
+  --color-bg-secondary: #f8fafc;
+  --color-bg-card: #ffffff;
+  --color-bg-card-hover: #f1f5f9;
+  --color-bg-elevated: #ffffff;
 
-  /* Emerald accent spectrum */
-  --color-emerald-50: #ecfdf5;
-  --color-emerald-100: #d1fae5;
-  --color-emerald-200: #a7f3d0;
-  --color-emerald-300: #6ee7b7;
-  --color-emerald-400: #34d399;
-  --color-emerald-500: #10b981;
-  --color-emerald-600: #059669;
-  --color-emerald-700: #047857;
-  --color-emerald-800: #065f46;
-  --color-emerald-900: #064e3b;
+  /* Blue accent spectrum */
+  --color-blue-50: #eff6ff;
+  --color-blue-100: #dbeafe;
+  --color-blue-200: #bfdbfe;
+  --color-blue-300: #93c5fd;
+  --color-blue-400: #60a5fa;
+  --color-blue-500: #3b82f6;
+  --color-blue-600: #2563eb;
+  --color-blue-700: #1d4ed8;
+  --color-blue-800: #1e40af;
+  --color-blue-900: #1e3a8a;
 
-  /* Text hierarchy */
-  --color-text-primary: #f0fdf4;
-  --color-text-secondary: #a7f3d0;
-  --color-text-muted: #6b8f7b;
-  --color-text-dim: #3d5a4a;
+  /* Text hierarchy (Dark text) */
+  --color-text-primary: #0f172a;
+  --color-text-secondary: #1e293b;
+  --color-text-muted: #475569;
+  --color-text-dim: #64748b;
 
   /* Status colors */
-  --color-success: #34d399;
-  --color-warning: #fbbf24;
-  --color-danger: #f87171;
-  --color-info: #60a5fa;
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-danger: #ef4444;
+  --color-info: #3b82f6;
 
-  /* Borders */
-  --color-border: #1e3a2a;
-  --color-border-hover: #2d5a3e;
+  /* Borders (Light borders) */
+  --color-border: #e2e8f0;
+  --color-border-hover: #cbd5e1;
 
-  /* Glass */
-  --color-glass: rgba(16, 185, 129, 0.06);
-  --color-glass-border: rgba(16, 185, 129, 0.15);
-  --color-glass-strong: rgba(16, 185, 129, 0.12);
+  /* Glass (Light glass) */
+  --color-glass: rgba(255, 255, 255, 0.7);
+  --color-glass-border: rgba(255, 255, 255, 0.4);
+  --color-glass-strong: rgba(255, 255, 255, 0.9);
 
   /* Fonts */
   --font-sans: var(--font-geist-sans);
@@ -51,7 +51,7 @@
 /* Global reset & base */
 * {
   scrollbar-width: thin;
-  scrollbar-color: var(--color-emerald-800) transparent;
+  scrollbar-color: var(--color-blue-300) transparent;
 }
 
 body {
@@ -76,18 +76,18 @@ body {
   border: 1px solid var(--color-glass-border);
 }
 
-/* Glow effects */
-.glow-emerald {
+/* Glow effects for light mode */
+.glow-blue {
   box-shadow:
-    0 0 20px rgba(16, 185, 129, 0.15),
-    0 0 60px rgba(16, 185, 129, 0.05);
+    0 0 20px rgba(59, 130, 246, 0.15),
+    0 0 60px rgba(59, 130, 246, 0.05);
 }
 
-.glow-emerald-strong {
+.glow-blue-strong {
   box-shadow:
-    0 0 30px rgba(16, 185, 129, 0.25),
-    0 0 80px rgba(16, 185, 129, 0.1),
-    inset 0 0 30px rgba(16, 185, 129, 0.05);
+    0 0 30px rgba(59, 130, 246, 0.25),
+    0 0 80px rgba(59, 130, 246, 0.1),
+    inset 0 0 30px rgba(59, 130, 246, 0.05);
 }
 
 /* Card styles */
@@ -95,6 +95,7 @@ body {
   background: var(--color-bg-card);
   border: 1px solid var(--color-border);
   border-radius: 16px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -1px rgba(0, 0, 0, 0.02);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -103,13 +104,13 @@ body {
   border-color: var(--color-border-hover);
   transform: translateY(-2px);
   box-shadow:
-    0 12px 40px rgba(0, 0, 0, 0.3),
-    0 0 20px rgba(16, 185, 129, 0.08);
+    0 12px 25px rgba(0, 0, 0, 0.05),
+    0 0 20px rgba(59, 130, 246, 0.08);
 }
 
 /* Gradient text */
 .text-gradient {
-  background: linear-gradient(135deg, var(--color-emerald-300), var(--color-emerald-500));
+  background: linear-gradient(135deg, var(--color-blue-500), var(--color-blue-700));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -124,52 +125,70 @@ body {
 
 /* Animated gradient background */
 .bg-gradient-animated {
-  background: linear-gradient(
-    -45deg,
-    var(--color-bg-primary),
-    var(--color-bg-secondary),
-    #0d2818,
-    var(--color-bg-primary)
-  );
+  background: linear-gradient(-45deg,
+      var(--color-bg-primary),
+      var(--color-bg-secondary),
+      #e0f2fe,
+      var(--color-bg-primary));
   background-size: 400% 400%;
   animation: gradientShift 15s ease infinite;
 }
 
 @keyframes gradientShift {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
 }
 
 /* Pulse animation */
-@keyframes pulse-emerald {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+@keyframes pulse-blue {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
 }
 
-.animate-pulse-emerald {
-  animation: pulse-emerald 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+.animate-pulse-blue {
+  animation: pulse-blue 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
 /* Dot grid pattern */
 .dot-pattern {
-  background-image: radial-gradient(
-    rgba(16, 185, 129, 0.08) 1px,
-    transparent 1px
-  );
+  background-image: radial-gradient(rgba(59, 130, 246, 0.15) 1px,
+      transparent 1px);
   background-size: 24px 24px;
 }
 
 /* SSE streaming cursor */
 @keyframes blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0; }
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0;
+  }
 }
 
 .cursor-blink::after {
   content: "▋";
   animation: blink 0.8s infinite;
-  color: var(--color-emerald-400);
+  color: var(--color-blue-500);
 }
 
 /* Custom scrollbar for webkit */
@@ -182,10 +201,10 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--color-emerald-800);
+  background: var(--color-blue-300);
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-emerald-700);
+  background: var(--color-blue-400);
 }

@@ -68,14 +68,14 @@ function ThinkingBlock({
         >
             <button
                 onClick={() => setExpanded(!expanded)}
-                className="flex items-center gap-2 text-xs font-medium text-emerald-400/70 hover:text-emerald-300 transition-colors group"
+                className="flex items-center gap-2 text-xs font-medium text-blue-400/70 hover:text-blue-300 transition-colors group"
             >
                 <div
                     className={cn(
                         "w-5 h-5 rounded-md flex items-center justify-center transition-colors",
                         isActivelyThinking
-                            ? "bg-emerald-500/20 animate-pulse"
-                            : "bg-emerald-500/10 group-hover:bg-emerald-500/15"
+                            ? "bg-blue-500/20 animate-pulse"
+                            : "bg-blue-500/10 group-hover:bg-blue-500/15"
                     )}
                 >
                     <Brain className="w-3 h-3" />
@@ -104,7 +104,7 @@ function ThinkingBlock({
                         animate={{ height: "auto", opacity: 1 }}
                         exit={{ height: 0, opacity: 0 }}
                         transition={{ duration: 0.2 }}
-                        className="mt-2 p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/10 text-xs text-[var(--color-text-muted)] leading-relaxed font-mono overflow-hidden max-h-60 overflow-y-auto"
+                        className="mt-2 p-3 rounded-xl bg-blue-500/5 border border-blue-500/10 text-xs text-[var(--color-text-muted)] leading-relaxed font-mono overflow-hidden max-h-60 overflow-y-auto"
                     >
                         <div className="whitespace-pre-wrap">{thinking}</div>
                         {isActivelyThinking && <span className="cursor-blink" />}
@@ -124,7 +124,7 @@ function MarkdownContent({ content }: { content: string }) {
             components={{
                 p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
                 strong: ({ children }) => (
-                    <strong className="text-emerald-300 font-semibold">{children}</strong>
+                    <strong className="text-blue-300 font-semibold">{children}</strong>
                 ),
                 em: ({ children }) => (
                     <em className="text-[var(--color-text-secondary)] italic">{children}</em>
@@ -151,14 +151,14 @@ function MarkdownContent({ content }: { content: string }) {
                     </h2>
                 ),
                 h3: ({ children }) => (
-                    <h3 className="text-sm font-semibold text-emerald-300 mt-2 mb-1">
+                    <h3 className="text-sm font-semibold text-blue-300 mt-2 mb-1">
                         {children}
                     </h3>
                 ),
                 code: ({ children, className }) => {
                     const isInline = !className;
                     return isInline ? (
-                        <code className="px-1.5 py-0.5 rounded-md bg-emerald-500/10 text-emerald-300 text-xs font-mono">
+                        <code className="px-1.5 py-0.5 rounded-md bg-blue-500/10 text-blue-300 text-xs font-mono">
                             {children}
                         </code>
                     ) : (
@@ -168,7 +168,7 @@ function MarkdownContent({ content }: { content: string }) {
                     );
                 },
                 blockquote: ({ children }) => (
-                    <blockquote className="border-l-2 border-emerald-500/30 pl-3 italic text-[var(--color-text-muted)] my-2">
+                    <blockquote className="border-l-2 border-blue-500/30 pl-3 italic text-[var(--color-text-muted)] my-2">
                         {children}
                     </blockquote>
                 ),
@@ -198,8 +198,8 @@ function MessageBubble({ message }: { message: Message }) {
             className={cn("flex gap-3", isUser ? "justify-end" : "justify-start")}
         >
             {!isUser && (
-                <div className="w-8 h-8 rounded-xl bg-emerald-500/15 flex items-center justify-center flex-shrink-0 mt-1">
-                    <BotMessageSquare className="w-4 h-4 text-emerald-400" />
+                <div className="w-8 h-8 rounded-xl bg-blue-500/15 flex items-center justify-center flex-shrink-0 mt-1">
+                    <BotMessageSquare className="w-4 h-4 text-blue-400" />
                 </div>
             )}
 
@@ -208,7 +208,7 @@ function MessageBubble({ message }: { message: Message }) {
                     className={cn(
                         "px-4 py-3 rounded-2xl text-sm leading-relaxed",
                         isUser
-                            ? "bg-emerald-600/30 text-[var(--color-text-primary)] border border-emerald-500/20 rounded-tr-md"
+                            ? "bg-blue-600/30 text-[var(--color-text-primary)] border border-blue-500/20 rounded-tr-md"
                             : "bg-[var(--color-bg-card)] border border-[var(--color-border)] rounded-tl-md"
                     )}
                 >
@@ -249,7 +249,7 @@ function MessageBubble({ message }: { message: Message }) {
                             onClick={handleCopy}
                             className="flex items-center gap-1 text-xs text-[var(--color-text-dim)] hover:text-[var(--color-text-muted)] transition-colors"
                         >
-                            {copied ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                            {copied ? <Check className="w-3 h-3 text-blue-400" /> : <Copy className="w-3 h-3" />}
                             {copied ? "Copied" : "Copy"}
                         </button>
                     </div>
@@ -415,7 +415,7 @@ export default function AdvisorPage() {
                     <motion.div
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="mb-4 flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/15 text-xs text-emerald-400 w-fit"
+                        className="mb-4 flex items-center gap-2 px-3 py-1.5 rounded-lg bg-blue-500/10 border border-blue-500/15 text-xs text-blue-400 w-fit"
                     >
                         <Shield className="w-3 h-3" />
                         AI knows your profile: <span className="font-semibold">{riskProfile.risk_category}</span> (Score: {riskProfile.health_score}/100)
@@ -431,15 +431,15 @@ export default function AdvisorPage() {
                             animate={{ opacity: 1, y: 0 }}
                             className="flex flex-col items-center justify-center h-full text-center pt-20"
                         >
-                            <div className="w-20 h-20 rounded-3xl bg-emerald-500/10 flex items-center justify-center mb-6 glow-emerald">
-                                <BotMessageSquare className="w-10 h-10 text-emerald-400" />
+                            <div className="w-20 h-20 rounded-3xl bg-blue-500/10 flex items-center justify-center mb-6 glow-blue">
+                                <BotMessageSquare className="w-10 h-10 text-blue-400" />
                             </div>
                             <h2 className="text-2xl font-bold text-[var(--color-text-primary)] mb-2">
-                                FinAegis AI Advisor
+                                ArthNiti AI Advisor
                             </h2>
                             <p className="text-[var(--color-text-muted)] max-w-md mb-8">
                                 Ask me about budgeting, savings, debt, or investments. All analysis runs{" "}
-                                <span className="text-emerald-400 font-medium">locally on your GPU</span>
+                                <span className="text-blue-400 font-medium">locally on your GPU</span>
                                 {riskProfile
                                     ? ` — tailored to your ${riskProfile.risk_category} profile.`
                                     : ". Complete the risk quiz to get personalized advice."}
@@ -455,8 +455,8 @@ export default function AdvisorPage() {
                                         onClick={() => sendMessage(s.text)}
                                         className="card p-4 text-left flex items-center gap-3 group"
                                     >
-                                        <div className="w-9 h-9 rounded-xl bg-emerald-500/10 flex items-center justify-center flex-shrink-0 group-hover:bg-emerald-500/15 transition-colors">
-                                            <s.icon className="w-4 h-4 text-emerald-400" />
+                                        <div className="w-9 h-9 rounded-xl bg-blue-500/10 flex items-center justify-center flex-shrink-0 group-hover:bg-blue-500/15 transition-colors">
+                                            <s.icon className="w-4 h-4 text-blue-400" />
                                         </div>
                                         <span className="text-sm text-[var(--color-text-muted)] group-hover:text-[var(--color-text-secondary)] transition-colors">
                                             {s.text}
@@ -481,7 +481,7 @@ export default function AdvisorPage() {
                             onKeyDown={handleKeyDown}
                             placeholder="Ask about your finances..."
                             rows={1}
-                            className="flex-1 px-4 py-3 rounded-xl bg-[var(--color-bg-card)] border border-[var(--color-border)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-dim)] focus:outline-none focus:border-emerald-500/40 focus:ring-1 focus:ring-emerald-500/20 transition-all resize-none text-sm"
+                            className="flex-1 px-4 py-3 rounded-xl bg-[var(--color-bg-card)] border border-[var(--color-border)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-dim)] focus:outline-none focus:border-blue-500/40 focus:ring-1 focus:ring-blue-500/20 transition-all resize-none text-sm"
                             style={{ minHeight: 48, maxHeight: 120 }}
                         />
                         {isStreaming ? (
@@ -499,7 +499,7 @@ export default function AdvisorPage() {
                                 whileTap={{ scale: 0.95 }}
                                 type="submit"
                                 disabled={!input.trim()}
-                                className="w-12 h-12 rounded-xl bg-emerald-600 hover:bg-emerald-500 flex items-center justify-center text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed shadow-lg shadow-emerald-500/20"
+                                className="w-12 h-12 rounded-xl bg-blue-600 hover:bg-blue-500 flex items-center justify-center text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed shadow-lg shadow-blue-500/20"
                             >
                                 <Send className="w-5 h-5" />
                             </motion.button>

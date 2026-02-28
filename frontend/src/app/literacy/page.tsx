@@ -66,7 +66,7 @@ const topics = [
 ];
 
 const difficultyColors: Record<string, string> = {
-    beginner: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
+    beginner: "text-blue-400 bg-blue-500/10 border-blue-500/20",
     intermediate: "text-yellow-400 bg-yellow-500/10 border-yellow-500/20",
     advanced: "text-red-400 bg-red-500/10 border-red-500/20",
 };
@@ -85,8 +85,8 @@ export default function LiteracyPage() {
                     className="mb-8"
                 >
                     <div className="flex items-center gap-3 mb-2">
-                        <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center">
-                            <BookOpen className="w-5 h-5 text-emerald-400" />
+                        <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
+                            <BookOpen className="w-5 h-5 text-blue-400" />
                         </div>
                         <h1 className="text-3xl font-bold text-[var(--color-text-primary)]">
                             Financial <span className="text-gradient">Literacy Hub</span>
@@ -115,8 +115,8 @@ export default function LiteracyPage() {
                                     onClick={() => setExpanded(isOpen ? null : topic.id)}
                                     className="w-full p-6 text-left flex items-start gap-4"
                                 >
-                                    <div className="w-11 h-11 rounded-xl bg-emerald-500/10 flex items-center justify-center flex-shrink-0">
-                                        <Icon className="w-5 h-5 text-emerald-400" />
+                                    <div className="w-11 h-11 rounded-xl bg-blue-500/10 flex items-center justify-center flex-shrink-0">
+                                        <Icon className="w-5 h-5 text-blue-400" />
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-2 mb-1.5">

@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "FinAegis — AI-Powered Financial Advisor",
+  title: "ArthNiti — AI-Powered Financial Advisor",
   description:
     "Privacy-first financial advisory powered by local AI. Passwordless auth, encrypted data, explainable insights.",
   keywords: ["finance", "AI", "budgeting", "passkey", "privacy", "WebAuthn"],

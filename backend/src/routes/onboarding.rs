@@ -50,30 +50,53 @@ fn build_ai_prompt(answers_json: &str) -> String {
     format!(
         r#"Act as "ArthNiti" — a Strategic Financial Advisor specializing in the Indian context.
 
-You are analyzing a user's financial profile. Use the 50-30-20 Rule as your scoring benchmark:
-- 50% Needs (rent, groceries, utilities, EMIs)
-- 30% Wants (entertainment, dining out, shopping)
-- 20% Savings & Investments
+You are analyzing a user's financial profile based on 13 questions across 4 sections.
 
-IMPORTANT INDIAN FINANCIAL NUANCES:
-1. EMI Culture: Most Indian Gen-Z/Millennials prioritize clearing debt (personal loans, credit card EMIs, education loans) over investing. Recognize this as financially prudent, not conservative.
-2. Emergency Fund = Gold + Liquid Cash + Family Support: In India, emergency reserves often include physical gold, family lending networks, and FDs — not just savings accounts. Acknowledge these as valid.
-3. Use ₹ (INR) for all monetary references. Understand typical Indian salary ranges (₹25K-₹2L/month for young professionals).
-4. Consider recurring Indian expenses: rent, commute, mobile recharge, subscriptions, family contributions.
+QUESTION STRUCTURE:
+Section 1 — Income & Spending:
+  - monthly_income: Monthly income in INR (numeric)
+  - savings_percentage: Savings rate as percent 0-100
+  - category_spending: Object with category-wise monthly spend in INR (keys: Rent/Housing, Food/Dining, Shopping/Lifestyle, Bills/Utilities, Transportation, Family Expenses, Subscriptions/Entertainment)
+  - debt_status: 0=No debt, 1=Small/manageable, 2=Moderate burden, 3=High burden, 4=Prefer not to disclose
 
-Based on this user profile:
+Section 2 — Savings & Stability:
+  - insurance_coverage: 0=None, 1=Employer only, 2=Personal health, 3=Health+Term life, 4=Comprehensive
+  - emergency_fund: 0=None, 1=Less than 1 month, 2=1-3 months, 3=3-6 months, 4=More than 6 months
+  - unexpected_expenses: 0=Use savings, 1=Reduce spending, 2=Credit/borrow, 3=Delay
+
+Section 3 — Behaviour & Personality:
+  - budget_habit: 0=Strictly, 1=Loosely, 2=Try but dont track, 3=No budget
+  - financial_style: 0=Save/avoid risks, 1=Balance carefully, 2=Spend now worry later, 3=No active planning
+  - risk_comfort: 0=Not comfortable, 1=Slightly uncomfortable, 2=Comfortable if planned, 3=Very comfortable
+
+Section 4 — Goals:
+  - primary_goal: 0=Emergency fund, 1=Budgeting, 2=Paying debts, 3=Major goal, 4=Saving discipline, 5=Understanding finances, 6=Not sure
+  - goal_amount: Target amount in INR (0 means unset)
+  - goal_timeframe: Text value like "1-3 years" or "Not sure"
+
+SCORING BENCHMARK — 50-30-20 Rule:
+- 50 percent Needs (rent, groceries, utilities, EMIs)
+- 30 percent Wants (entertainment, dining out, shopping)
+- 20 percent Savings and Investments
+
+INDIAN FINANCIAL NUANCES:
+1. EMI Culture: Most Indian Gen-Z/Millennials prioritize clearing debt over investing. Recognize this as prudent.
+2. Emergency Fund = Gold + Liquid Cash + Family Support — valid in Indian context.
+3. Use INR for all monetary references.
+
+USER PROFILE DATA:
 {answers_json}
 
 Calculate and return a JSON object with EXACTLY this structure (no markdown, no code fences, just raw JSON):
 {{
-  "health_score": <0-100 integer based on 50-30-20 adherence>,
-  "personality_badge": "<one of: 'The Prudent Guardian', 'The Steady Builder', 'The Balanced Navigator', 'The Growth Architect', 'The Bold Strategist'>",
+  "health_score": <0-100 integer>,
+  "personality_badge": "<one of: The Prudent Guardian, The Steady Builder, The Balanced Navigator, The Growth Architect, The Bold Strategist>",
   "risk_category": "<Conservative / Moderate / Aggressive>",
-  "savings_ratio": <actual savings percentage as decimal, e.g. 0.15>,
+  "savings_ratio": <savings percentage as decimal e.g. 0.15>,
   "insights": [
     {{
       "title": "<short actionable title>",
-      "description": "<2-3 sentence personalized advice in Indian context using ₹>",
+      "description": "<2-3 sentence personalized advice in Indian context using INR, referencing their actual numbers>",
       "priority": "<high/medium/low>"
     }},
     {{
@@ -144,7 +167,7 @@ async fn submit_onboarding(
         "messages": [
             {
                 "role": "system",
-                "content": "You are ArthNiti, an expert Indian financial strategist. You MUST respond with ONLY valid JSON, no markdown formatting, no code fences, no explanation text. Just the raw JSON object."
+                "content": "You are ArthNiti, an expert Indian financial strategist. You MUST respond with ONLY a single valid JSON object. No markdown, no code fences (```), no explanation text before or after. Just the raw JSON object starting with { and ending with }. IMPORTANT: Your final output MUST be a single valid JSON object with no surrounding text."
             },
             {
                 "role": "user",
@@ -152,9 +175,10 @@ async fn submit_onboarding(
             }
         ],
         "stream": false,
+        "think": false,
         "options": {
             "temperature": 0.3,
-            "num_predict": 1024
+            "num_predict": 2048
         }
     });
 
@@ -170,34 +194,60 @@ async fn submit_onboarding(
     let (health_score, personality_badge, risk_category, savings_ratio, insights, reasoning) =
         match ai_response {
             Ok(res) => {
-                match res.json::<serde_json::Value>().await {
-                    Ok(data) => {
-                        let content = data["message"]["content"]
-                            .as_str()
-                            .unwrap_or("")
-                            .to_string();
+                let status = res.status();
+                match res.text().await {
+                    Ok(raw_text) => {
+                        tracing::info!("🧠 Ollama HTTP {}, response length: {} chars", status, raw_text.len());
 
-                        tracing::info!("🧠 DeepSeek raw response length: {} chars", content.len());
-
-                        // Extract reasoning (between <think> tags if present)
-                        let reasoning = if let (Some(start), Some(end)) =
-                            (content.find("<think>"), content.find("</think>"))
-                        {
-                            Some(content[start + 7..end].trim().to_string())
+                        if !status.is_success() {
+                            tracing::warn!("⚠️ Ollama returned error: {}", &raw_text[..raw_text.len().min(500)]);
+                            fallback_analysis(&payload.answers)
+                        } else if raw_text.is_empty() {
+                            tracing::warn!("⚠️ Ollama returned empty body");
+                            fallback_analysis(&payload.answers)
                         } else {
-                            None
-                        };
+                            match serde_json::from_str::<serde_json::Value>(&raw_text) {
+                                Ok(data) => {
+                                    let content = data["message"]["content"]
+                                        .as_str()
+                                        .unwrap_or("")
+                                        .to_string();
 
-                        // Extract JSON from response (strip <think> block and any markdown fences)
-                        let json_str = content
-                            .split("</think>")
-                            .last()
-                            .unwrap_or(&content)
-                            .trim()
-                            .trim_start_matches("```json")
-                            .trim_start_matches("```")
-                            .trim_end_matches("```")
-                            .trim();
+                                    // DeepSeek-R1 puts CoT in a separate "thinking" field
+                                    let thinking = data["message"]["thinking"]
+                                        .as_str()
+                                        .map(|s| s.to_string());
+
+                                    tracing::info!(
+                                        "🧠 DeepSeek content: {} chars, thinking: {} chars",
+                                        content.len(),
+                                        thinking.as_ref().map(|t| t.len()).unwrap_or(0)
+                                    );
+
+                                    // Primary: use content field (with think:false, R1 puts output here)
+                                    // Fallback: scan thinking text for JSON if content is empty
+                                    let json_source = if !content.is_empty() {
+                                        tracing::info!("🧠 Using content field for JSON");
+                                        content.clone()
+                                    } else if thinking.as_ref().map(|t| t.len()).unwrap_or(0) > 0 {
+                                        tracing::info!("🧠 Content empty, scanning thinking text for JSON...");
+                                        extract_json_from_text(thinking.as_deref().unwrap_or(""))
+                                    } else {
+                                        tracing::warn!("⚠️ Both content and thinking are empty");
+                                        String::new()
+                                    };
+
+                                    let reasoning = thinking;
+
+                                    // Strip markdown fences if present
+                                    let json_str = json_source
+                                        .trim()
+                                        .trim_start_matches("```json")
+                                        .trim_start_matches("```")
+                                        .trim_end_matches("```")
+                                        .trim();
+
+                                    tracing::info!("🧠 Final JSON candidate: {} chars", json_str.len());
 
                         match serde_json::from_str::<serde_json::Value>(json_str) {
                             Ok(parsed) => {
@@ -224,9 +274,16 @@ async fn submit_onboarding(
                                 fallback_analysis(&payload.answers)
                             }
                         }
+                                }
+                                Err(e) => {
+                                    tracing::warn!("⚠️ Failed to parse Ollama wrapper JSON: {e}");
+                                    fallback_analysis(&payload.answers)
+                                }
+                            }
+                        }
                     }
                     Err(e) => {
-                        tracing::warn!("⚠️ Ollama response parse error: {e}");
+                        tracing::warn!("⚠️ Ollama response read error: {e}");
                         fallback_analysis(&payload.answers)
                     }
                 }
@@ -409,4 +466,80 @@ fn default_insights() -> Vec<InsightCard> {
             priority: "high".into(),
         },
     ]
+}
+
+/// Scan free-form text (e.g. DeepSeek-R1 thinking output) for valid JSON objects.
+/// Uses brace-counting to find balanced `{...}` blocks, then tries to parse each.
+/// Returns the best match (one containing "health_score") or the largest valid JSON.
+fn extract_json_from_text(text: &str) -> String {
+    let chars: Vec<char> = text.chars().collect();
+    let mut candidates: Vec<String> = Vec::new();
+
+    let mut i = 0;
+    while i < chars.len() {
+        if chars[i] == '{' {
+            let start = i;
+            let mut depth = 0;
+            let mut in_string = false;
+            let mut escape_next = false;
+
+            while i < chars.len() {
+                let ch = chars[i];
+                if escape_next {
+                    escape_next = false;
+                    i += 1;
+                    continue;
+                }
+                if ch == '\\' && in_string {
+                    escape_next = true;
+                    i += 1;
+                    continue;
+                }
+                if ch == '"' {
+                    in_string = !in_string;
+                }
+                if !in_string {
+                    if ch == '{' {
+                        depth += 1;
+                    } else if ch == '}' {
+                        depth -= 1;
+                        if depth == 0 {
+                            let candidate: String = chars[start..=i].iter().collect();
+                            if candidate.len() > 50 {
+                                // Only consider chunks large enough to be the answer
+                                candidates.push(candidate);
+                            }
+                            break;
+                        }
+                    }
+                }
+                i += 1;
+            }
+        }
+        i += 1;
+    }
+
+    // Sort by length descending — the biggest JSON block is most likely the full answer
+    candidates.sort_by(|a, b| b.len().cmp(&a.len()));
+
+    // Try to find the one with "health_score" first
+    for c in &candidates {
+        if c.contains("health_score") {
+            if serde_json::from_str::<serde_json::Value>(c).is_ok() {
+                tracing::info!("🧠 Found JSON with health_score ({} chars) among {} candidates", c.len(), candidates.len());
+                return c.clone();
+            }
+        }
+    }
+
+    // Fall back to the largest parseable JSON
+    for c in &candidates {
+        if serde_json::from_str::<serde_json::Value>(c).is_ok() {
+            tracing::info!("🧠 Using largest valid JSON ({} chars) among {} candidates", c.len(), candidates.len());
+            return c.clone();
+        }
+    }
+
+    tracing::warn!("⚠️ No valid JSON found in {} chars of thinking text ({} candidates tried)", text.len(), candidates.len());
+    String::new()
 }
