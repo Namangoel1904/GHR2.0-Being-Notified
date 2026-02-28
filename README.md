@@ -4,11 +4,11 @@
   <img src="https://img.shields.io/badge/AI-Local%20Only-green?style=for-the-badge" />
 </p>
 
-# 🛡️ FinAegis — AI-Powered Financial Advisory Platform
+# 🛡️ ArthNiti — AI-Powered Financial Advisory Platform
 
 > **Privacy-first, passwordless, AI-driven financial coaching — everything runs on your device.**
 
-FinAegis helps everyday users with limited financial literacy get **actionable budgeting and savings advice** from a local AI engine. No cloud. No passwords. No data leaks.
+ArthNiti helps everyday users with limited financial literacy get **actionable budgeting and savings advice** from a local AI engine. No cloud. No passwords. No data leaks.
 
 ---
 
