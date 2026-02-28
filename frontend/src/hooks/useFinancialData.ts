@@ -244,3 +244,34 @@ export function checkUnusualSpending(
 
     return null;
 }
+
+// ─── Onboarding Profile Hook (AI-generated from questionnaire) ──────────────
+
+export interface OnboardingProfile {
+    health_score: number;
+    personality_badge: string;
+    risk_category: string;
+    savings_ratio: number;
+    ai_insights: { title: string; description: string; priority: string }[];
+}
+
+export function useOnboardingProfile() {
+    const { data, error, isLoading } = useSWR<OnboardingProfile | null>(
+        "onboarding-profile",
+        () => {
+            // Try localStorage first (set after onboarding completion)
+            const cached = localStorage.getItem("onboarding_profile");
+            if (cached) {
+                const parsed = JSON.parse(cached);
+                return parsed as OnboardingProfile;
+            }
+            return null;
+        },
+        {
+            revalidateOnFocus: false,
+            revalidateOnReconnect: false,
+        }
+    );
+
+    return { profile: data, isLoading, error };
+}

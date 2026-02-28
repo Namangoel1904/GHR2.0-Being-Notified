@@ -307,6 +307,8 @@ async fn main() {
         .nest("/api/dashboard", routes::dashboard::router())
         // Profile / Risk Quiz
         .nest("/api/profile", routes::profile::router())
+        // Onboarding (Financial Niti questionnaire + AI synthesis)
+        .nest("/api/onboarding", routes::onboarding::router())
         // Literacy
         .nest("/api/literacy", routes::literacy::router())
         .layer(cors)

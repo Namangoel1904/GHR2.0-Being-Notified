@@ -31,6 +31,7 @@ import {
     Loader2,
     WifiOff,
     RefreshCw,
+    Award,
 } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 import Navbar from "@/components/Navbar";
@@ -40,6 +41,7 @@ import {
     useAlerts,
     useGoals,
     useHealthScore,
+    useOnboardingProfile,
 } from "@/hooks/useFinancialData";
 
 // ─── Color Palette for Charts ───────────────────────────────────────────────
@@ -171,6 +173,15 @@ export default function DashboardPage() {
     const { alerts, isLoading: alertsLoading, error: alertsError, refresh: refreshAlerts } = useAlerts();
     const { goals, isLoading: goalsLoading, refresh: refreshGoals } = useGoals();
     const { healthScore, isLoading: healthLoading } = useHealthScore();
+    const { profile: onboardingProfile } = useOnboardingProfile();
+
+    // Use onboarding profile health score if available, fall back to API
+    const displayHealthScore = onboardingProfile?.health_score ?? healthScore?.health_score ?? 0;
+    const displayBadge = onboardingProfile?.personality_badge;
+    const displayRisk = onboardingProfile?.risk_category;
+    const displayInsights = onboardingProfile?.ai_insights ?? [];
+
+    const username = typeof window !== "undefined" ? localStorage.getItem("username") || "User" : "User";
 
     const totalSpending = spending?.total_spending ?? 0;
     const totalIncome = 5400; // Would come from a /api/dashboard/income endpoint
@@ -217,11 +228,19 @@ export default function DashboardPage() {
                 {/* Header */}
                 <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
                     <h1 className="text-3xl font-bold text-[var(--color-text-primary)]">
-                        Good Morning, <span className="text-gradient">Naman</span>
+                        Good Morning, <span className="text-gradient">{username}</span>
                     </h1>
-                    <p className="text-[var(--color-text-muted)] mt-1">
-                        Here&apos;s your financial overview for {spending?.month ?? "February 2026"}
-                    </p>
+                    <div className="flex items-center gap-3 mt-1">
+                        <p className="text-[var(--color-text-muted)]">
+                            Here&apos;s your financial overview for {spending?.month ?? "February 2026"}
+                        </p>
+                        {displayBadge && (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs font-medium">
+                                <Award className="w-3 h-3" />
+                                {displayBadge}
+                            </span>
+                        )}
+                    </div>
                 </motion.div>
 
                 {/* Error banners */}
@@ -270,11 +289,18 @@ export default function DashboardPage() {
                             {healthLoading ? (
                                 <div className="w-40 h-40 rounded-full bg-[var(--color-bg-elevated)] animate-pulse" />
                             ) : (
-                                <HealthScoreGauge score={healthScore?.health_score ?? 0} trend={healthScore?.trend ?? ""} />
+                                <HealthScoreGauge score={displayHealthScore} trend={healthScore?.trend ?? ""} />
                             )}
-                            <div className="mt-4 flex items-center gap-2 text-sm">
-                                <TrendingUp className="w-4 h-4 text-emerald-400" />
-                                <span className="text-emerald-300 capitalize">{healthScore?.trend ?? "..."}</span>
+                            <div className="mt-4 flex flex-col items-center gap-2 text-sm">
+                                <div className="flex items-center gap-2">
+                                    <TrendingUp className="w-4 h-4 text-emerald-400" />
+                                    <span className="text-emerald-300 capitalize">{healthScore?.trend ?? "..."}</span>
+                                </div>
+                                {displayRisk && (
+                                    <span className="text-xs text-[var(--color-text-dim)]">
+                                        Risk Profile: {displayRisk}
+                                    </span>
+                                )}
                             </div>
                         </motion.div>
                     </div>
@@ -394,6 +420,31 @@ export default function DashboardPage() {
                             </BarChart>
                         </ResponsiveContainer>
                     </motion.div>
+
+                    {/* AI Insight Cards */}
+                    {displayInsights.length > 0 && (
+                        <motion.div variants={itemVariants} className="card p-6">
+                            <div className="flex items-center gap-2 mb-4">
+                                <Sparkles className="w-5 h-5 text-emerald-400" />
+                                <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">AI Insights</h2>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                {displayInsights.map((insight, i) => {
+                                    const borderColor = insight.priority === "high"
+                                        ? "border-red-500/20 bg-red-500/5"
+                                        : insight.priority === "medium"
+                                            ? "border-yellow-500/20 bg-yellow-500/5"
+                                            : "border-emerald-500/20 bg-emerald-500/5";
+                                    return (
+                                        <div key={i} className={cn("p-4 rounded-xl border", borderColor)}>
+                                            <h3 className="text-sm font-semibold text-[var(--color-text-primary)] mb-2">{insight.title}</h3>
+                                            <p className="text-xs text-[var(--color-text-muted)] leading-relaxed">{insight.description}</p>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </motion.div>
+                    )}
                 </motion.div>
             </main>
         </div>

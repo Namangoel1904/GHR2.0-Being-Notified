@@ -89,13 +89,13 @@ export default function LandingPage() {
 
             <h1 className="text-5xl md:text-7xl font-bold tracking-tight leading-[1.1] mb-6">
               <span className="text-[var(--color-text-primary)]">
-                Your Finances.
+                Predict.
               </span>
               <br />
-              <span className="text-gradient">Your Device.</span>
+              <span className="text-gradient">Plan.</span>
               <br />
               <span className="text-[var(--color-text-primary)]">
-                Your Privacy.
+                Protect.
               </span>
             </h1>
 

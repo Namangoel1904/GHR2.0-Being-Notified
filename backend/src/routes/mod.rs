@@ -1,3 +1,4 @@
 pub mod dashboard;
-pub mod profile;
 pub mod literacy;
+pub mod onboarding;
+pub mod profile;

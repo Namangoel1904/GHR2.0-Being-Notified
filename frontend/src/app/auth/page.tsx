@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
     Fingerprint,
@@ -9,6 +9,8 @@ import {
     CheckCircle2,
     AlertCircle,
     Loader2,
+    X,
+    ScrollText,
 } from "lucide-react";
 import {
     browserSupportsWebAuthn,
@@ -27,8 +29,25 @@ export default function AuthPage() {
     const [message, setMessage] = useState("");
     const [supportsWebAuthn, setSupportsWebAuthn] = useState(true);
 
+    // Disclaimer state
+    const [disclaimerOpen, setDisclaimerOpen] = useState(false);
+    const [disclaimerScrolledToBottom, setDisclaimerScrolledToBottom] = useState(false);
+    const [disclaimerAccepted, setDisclaimerAccepted] = useState(false);
+    const disclaimerRef = useRef<HTMLDivElement>(null);
+
     useEffect(() => {
         setSupportsWebAuthn(browserSupportsWebAuthn());
+    }, []);
+
+    // Detect when user scrolls to the bottom of the disclaimer
+    const handleDisclaimerScroll = useCallback(() => {
+        const el = disclaimerRef.current;
+        if (!el) return;
+        // Allow 10px tolerance for reaching the bottom
+        const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 10;
+        if (atBottom) {
+            setDisclaimerScrolledToBottom(true);
+        }
     }, []);
 
     // ─── Real FIDO2 Auth ──────────────────────────────────────────────
@@ -51,20 +70,11 @@ export default function AuthPage() {
             let result;
 
             if (mode === "register") {
-                // registerPasskey() internally:
-                //   1. POST /register/start → gets WebAuthn challenge
-                //   2. startRegistration()  → browser shows native passkey/biometric/QR prompt
-                //   3. POST /register/finish → server verifies + stores credential
                 result = await registerPasskey(
                     username.trim(),
                     (displayName || username).trim()
                 );
             } else {
-                // authenticatePasskey() internally:
-                //   1. POST /login/start → gets assertion challenge
-                //   2. startAuthentication() → browser shows native prompt
-                //      (includes "Use a phone or tablet" for hybrid/QR transport)
-                //   3. POST /login/finish → server verifies signed assertion
                 result = await authenticatePasskey(username.trim());
             }
 
@@ -74,7 +84,6 @@ export default function AuthPage() {
                 return;
             }
 
-            // Store session data
             if (result.token) localStorage.setItem("session_token", result.token);
             if (result.user_id) localStorage.setItem("user_id", result.user_id);
             localStorage.setItem("username", username.trim());
@@ -83,12 +92,12 @@ export default function AuthPage() {
             setMessage(result.message);
 
             setTimeout(() => {
-                window.location.href = "/dashboard";
+                // After registration → onboarding questionnaire; after login → dashboard
+                window.location.href = mode === "register" ? "/onboarding" : "/dashboard";
             }, 1500);
         } catch (error) {
             setStep("error");
             if (error instanceof Error) {
-                // User cancelled the browser prompt
                 if (error.name === "NotAllowedError") {
                     setMessage("Authentication cancelled. Try again when ready.");
                 } else {
@@ -99,6 +108,10 @@ export default function AuthPage() {
             }
         }
     }, [mode, username, displayName]);
+
+    // Button disabled logic
+    const isButtonDisabled =
+        step === "prompting" || (mode === "register" && !disclaimerAccepted);
 
     // ─── Render ───────────────────────────────────────────────────────
 
@@ -148,8 +161,8 @@ export default function AuthPage() {
                                     setMessage("");
                                 }}
                                 className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all duration-200 ${mode === m
-                                        ? "bg-emerald-500/20 text-emerald-300 shadow-lg shadow-emerald-500/10"
-                                        : "text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]"
+                                    ? "bg-emerald-500/20 text-emerald-300 shadow-lg shadow-emerald-500/10"
+                                    : "text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]"
                                     }`}
                             >
                                 {m === "login" ? "Sign In" : "Register"}
@@ -197,12 +210,54 @@ export default function AuthPage() {
                         </AnimatePresence>
                     </div>
 
-                    {/* Primary Auth Button — triggers native browser FIDO2 dialog */}
+                    {/* ── Disclaimer Checkbox (Registration only) ── */}
+                    <AnimatePresence>
+                        {mode === "register" && (
+                            <motion.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: "auto", opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                transition={{ duration: 0.2 }}
+                                className="mb-4"
+                            >
+                                <label className="flex items-center gap-3 cursor-pointer group">
+                                    <input
+                                        type="checkbox"
+                                        checked={disclaimerAccepted}
+                                        disabled={!disclaimerScrolledToBottom}
+                                        onChange={(e) => setDisclaimerAccepted(e.target.checked)}
+                                        className="w-4 h-4 rounded border-2 border-[var(--color-border)] bg-transparent checked:bg-emerald-500 checked:border-emerald-500 focus:ring-emerald-500/30 focus:ring-2 transition-all disabled:opacity-40 disabled:cursor-not-allowed accent-emerald-500"
+                                    />
+                                    <span className="text-sm text-[var(--color-text-muted)]">
+                                        I have read and agree to the{" "}
+                                        <button
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                setDisclaimerOpen(true);
+                                                setDisclaimerScrolledToBottom(false);
+                                            }}
+                                            className="text-emerald-400 underline underline-offset-2 hover:text-emerald-300 transition-colors font-medium"
+                                        >
+                                            Disclaimer
+                                        </button>
+                                    </span>
+                                </label>
+                                {!disclaimerScrolledToBottom && (
+                                    <p className="text-[10px] text-[var(--color-text-dim)] mt-1.5 ml-7">
+                                        Open and read the disclaimer to enable registration
+                                    </p>
+                                )}
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+
+                    {/* Primary Auth Button */}
                     <motion.button
-                        whileHover={{ scale: 1.01 }}
-                        whileTap={{ scale: 0.98 }}
+                        whileHover={{ scale: isButtonDisabled ? 1 : 1.01 }}
+                        whileTap={{ scale: isButtonDisabled ? 1 : 0.98 }}
                         onClick={handleAuth}
-                        disabled={step === "prompting"}
+                        disabled={isButtonDisabled}
                         className="w-full py-3.5 px-6 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 text-white font-semibold text-sm flex items-center justify-center gap-2.5 hover:from-emerald-500 hover:to-emerald-400 transition-all shadow-lg shadow-emerald-500/25 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         {step === "prompting" ? (
@@ -242,8 +297,8 @@ export default function AuthPage() {
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, y: -10 }}
                                 className={`mt-4 p-3 rounded-xl flex items-center gap-2 text-sm ${step === "success"
-                                        ? "bg-emerald-500/10 text-emerald-300 border border-emerald-500/20"
-                                        : "bg-red-500/10 text-red-300 border border-red-500/20"
+                                    ? "bg-emerald-500/10 text-emerald-300 border border-emerald-500/20"
+                                    : "bg-red-500/10 text-red-300 border border-red-500/20"
                                     }`}
                             >
                                 {step === "success" ? (
@@ -256,7 +311,6 @@ export default function AuthPage() {
                         )}
                     </AnimatePresence>
 
-                    {/* WebAuthn Support Warning */}
                     {!supportsWebAuthn && (
                         <div className="mt-4 p-3 rounded-xl bg-yellow-500/10 text-yellow-300 border border-yellow-500/20 text-xs flex items-center gap-2">
                             <AlertCircle className="w-4 h-4 flex-shrink-0" />
@@ -276,6 +330,179 @@ export default function AuthPage() {
                     <span>Zero-Knowledge</span>
                 </div>
             </motion.div>
+
+            {/* ═══════════ DISCLAIMER MODAL ═══════════ */}
+            <AnimatePresence>
+                {disclaimerOpen && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+                        onClick={() => setDisclaimerOpen(false)}
+                    >
+                        <motion.div
+                            initial={{ opacity: 0, y: 40, scale: 0.95 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: 40, scale: 0.95 }}
+                            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                            onClick={(e) => e.stopPropagation()}
+                            className="relative w-full max-w-3xl max-h-[85vh] flex flex-col glass-strong rounded-2xl border border-[var(--color-border)] glow-emerald overflow-hidden"
+                        >
+                            {/* Modal Header */}
+                            <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--color-border)]">
+                                <div className="flex items-center gap-2">
+                                    <ScrollText className="w-5 h-5 text-emerald-400" />
+                                    <h2 className="text-lg font-bold text-[var(--color-text-primary)]">
+                                        Disclaimer
+                                    </h2>
+                                </div>
+                                <button
+                                    onClick={() => setDisclaimerOpen(false)}
+                                    className="p-1.5 rounded-lg hover:bg-[var(--color-bg-primary)]/80 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+
+                            {/* Scrollable Disclaimer Content */}
+                            <div
+                                ref={disclaimerRef}
+                                onScroll={handleDisclaimerScroll}
+                                className="flex-1 overflow-y-auto px-6 py-5 text-base text-[var(--color-text-secondary)] leading-relaxed space-y-4 scroll-smooth"
+                                style={{ maxHeight: "60vh" }}
+                            >
+                                <h3 className="text-emerald-400 font-semibold text-base">
+                                    ArthNiti — Terms of Use &amp; Disclaimer
+                                </h3>
+
+                                <p>
+                                    By registering an account with ArthNiti, you acknowledge and agree to the
+                                    following terms. Please read this document carefully before proceeding.
+                                </p>
+
+                                <h4 className="text-[var(--color-text-primary)] font-semibold mt-4">
+                                    1. Not Financial Advice
+                                </h4>
+                                <p>
+                                    ArthNiti is an AI-powered financial literacy and budgeting tool designed for
+                                    <strong> educational purposes only</strong>. The insights, suggestions, and analyses
+                                    provided by the platform do not constitute professional financial, investment,
+                                    tax, or legal advice. You should always consult a qualified financial advisor
+                                    before making any financial decisions.
+                                </p>
+
+                                <h4 className="text-[var(--color-text-primary)] font-semibold mt-4">
+                                    2. AI Limitations
+                                </h4>
+                                <p>
+                                    The AI advisor (powered by DeepSeek-R1) runs locally on your device. While it
+                                    strives to provide helpful insights, the AI may produce inaccurate, incomplete,
+                                    or outdated information. ArthNiti makes no guarantees about the accuracy,
+                                    reliability, or completeness of any AI-generated content. Users should
+                                    independently verify all financial information.
+                                </p>
+
+                                <h4 className="text-[var(--color-text-primary)] font-semibold mt-4">
+                                    3. Data Privacy &amp; On-Device Processing
+                                </h4>
+                                <p>
+                                    All financial data processing occurs locally on your device. ArthNiti does not
+                                    transmit your financial data to external cloud servers. However, the platform
+                                    stores encrypted data in a local PostgreSQL database. You are responsible for
+                                    the security of your device and local database credentials.
+                                </p>
+
+                                <h4 className="text-[var(--color-text-primary)] font-semibold mt-4">
+                                    4. Passwordless Authentication (WebAuthn/FIDO2)
+                                </h4>
+                                <p>
+                                    ArthNiti uses FIDO2-compliant passkeys for authentication. Your private keys
+                                    never leave your authenticator device. If you lose access to all registered
+                                    authenticators, you may lose access to your account. ArthNiti is not responsible
+                                    for account recovery in such cases.
+                                </p>
+
+                                <h4 className="text-[var(--color-text-primary)] font-semibold mt-4">
+                                    5. Risk Profile Assessment
+                                </h4>
+                                <p>
+                                    The risk profiling quiz provides a simplified assessment of your financial risk
+                                    tolerance. This assessment is based on general models and may not accurately
+                                    reflect your actual risk tolerance or financial situation. Do not rely solely on
+                                    this assessment for investment decisions.
+                                </p>
+
+                                <h4 className="text-[var(--color-text-primary)] font-semibold mt-4">
+                                    6. No Liability
+                                </h4>
+                                <p>
+                                    ArthNiti, its developers, and contributors shall not be held liable for any
+                                    financial losses, damages, or consequences arising from the use of this platform.
+                                    Use ArthNiti at your own risk. The platform is provided &ldquo;as is&rdquo; without
+                                    warranty of any kind, either express or implied.
+                                </p>
+
+                                <h4 className="text-[var(--color-text-primary)] font-semibold mt-4">
+                                    7. Encryption &amp; Security
+                                </h4>
+                                <p>
+                                    Financial data is encrypted using AES-256-GCM at rest. While this provides
+                                    strong encryption, no system is 100% secure. Users should follow best security
+                                    practices including keeping their operating system and software up to date.
+                                </p>
+
+                                <h4 className="text-[var(--color-text-primary)] font-semibold mt-4">
+                                    8. Experimental / Hackathon Project
+                                </h4>
+                                <p>
+                                    ArthNiti is a prototype/hackathon project and is not intended for production
+                                    use with real financial data. Use mock or test data only. The software has not
+                                    undergone a formal security audit.
+                                </p>
+
+                                <h4 className="text-[var(--color-text-primary)] font-semibold mt-4">
+                                    9. Changes to Terms
+                                </h4>
+                                <p>
+                                    These terms may be updated at any time without prior notice. Continued use of
+                                    the platform constitutes acceptance of any modified terms.
+                                </p>
+
+                                {/* Scroll anchor — the user must reach this */}
+                                <div className="pt-4 pb-2 border-t border-[var(--color-border)] mt-6">
+                                    <p className="text-emerald-400 text-xs font-medium text-center">
+                                        ✅ You have read the complete disclaimer.
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Modal Footer */}
+                            <div className="px-6 py-4 border-t border-[var(--color-border)] flex items-center justify-between">
+                                <p className="text-sm text-white font-medium">
+                                    {disclaimerScrolledToBottom
+                                        ? "✅ You may now close and accept"
+                                        : "⬇️ Scroll down to read the full disclaimer"}
+                                </p>
+                                <button
+                                    onClick={() => {
+                                        if (disclaimerScrolledToBottom) {
+                                            setDisclaimerAccepted(true);
+                                        }
+                                        setDisclaimerOpen(false);
+                                    }}
+                                    className={`px-5 py-2 rounded-xl text-sm font-medium transition-all ${disclaimerScrolledToBottom
+                                        ? "bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 border border-emerald-500/25"
+                                        : "bg-[var(--color-bg-primary)]/60 text-[var(--color-text-dim)] border border-[var(--color-border)]"
+                                        }`}
+                                >
+                                    {disclaimerScrolledToBottom ? "Close & Accept" : "Close"}
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }
