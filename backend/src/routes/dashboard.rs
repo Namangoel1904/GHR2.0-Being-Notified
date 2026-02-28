@@ -183,11 +183,33 @@ async fn get_alerts(
 }
 
 async fn list_goals(
-    State(_state): State<Arc<AppState>>,
+    State(state): State<Arc<AppState>>,
 ) -> Json<serde_json::Value> {
+    // Safely extract the mock user ID
+    let user_id = match sqlx::query!("SELECT id FROM users LIMIT 1").fetch_optional(&state.db).await {
+        Ok(Some(r)) => r.id,
+        _ => {
+            let uid = Uuid::new_v4();
+            let _ = sqlx::query!("INSERT INTO users (id, username, display_name) VALUES ($1, $2, $3)", uid, format!("test_{}", uid), "Test User").execute(&state.db).await;
+            uid
+        }
+    };
+
+    let goals = match sqlx::query_as!(
+        Goal,
+        r#"SELECT id, user_id, title, target_amount, current_amount, deadline, category, created_at, updated_at 
+           FROM goals WHERE user_id = $1 ORDER BY created_at ASC"#,
+        user_id
+    )
+    .fetch_all(&state.db)
+    .await {
+        Ok(g) => g,
+        Err(_) => vec![],
+    };
+
     Json(serde_json::json!({
-        "goals": [],
-        "message": "Goals endpoint ready"
+        "success": true,
+        "goals": goals
     }))
 }
 
@@ -197,15 +219,34 @@ async fn create_goal(
 ) -> Json<serde_json::Value> {
     let id = Uuid::new_v4();
 
+    // Safely extract the mock user ID to prevent PostgreSQL foreign key constraint violations
+    let user_id = match sqlx::query!("SELECT id FROM users LIMIT 1").fetch_optional(&state.db).await {
+        Ok(Some(r)) => r.id,
+        _ => {
+            let uid = Uuid::new_v4();
+            let _ = sqlx::query!("INSERT INTO users (id, username, display_name) VALUES ($1, $2, $3)", uid, format!("test_{}", uid), "Test User").execute(&state.db).await;
+            uid
+        }
+    };
+
+    let parsed_deadline = if let Some(dl) = payload.deadline {
+        chrono::DateTime::parse_from_rfc3339(&format!("{}T00:00:00Z", dl))
+            .map(|dt| dt.with_timezone(&chrono::Utc))
+            .ok()
+    } else {
+        None
+    };
+
     let result = sqlx::query(
-        r#"INSERT INTO goals (id, user_id, title, target_amount, current_amount, category)
-           VALUES ($1, $2, $3, $4, $5, $6)"#,
+        r#"INSERT INTO goals (id, user_id, title, target_amount, current_amount, deadline, category)
+           VALUES ($1, $2, $3, $4, $5, $6, $7)"#,
     )
     .bind(id)
-    .bind(Uuid::new_v4()) // TODO: real user_id from session
+    .bind(user_id) 
     .bind(&payload.title)
     .bind(payload.target_amount)
     .bind(payload.current_amount.unwrap_or(0.0))
+    .bind(parsed_deadline)
     .bind(payload.category.as_deref().unwrap_or("General"))
     .execute(&state.db)
     .await;

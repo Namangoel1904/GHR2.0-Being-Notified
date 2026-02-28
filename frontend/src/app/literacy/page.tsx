@@ -4,173 +4,577 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
     BookOpen,
-    Clock,
+    PlayCircle,
+    ShieldCheck,
+    TrendingUp,
+    AlertTriangle,
     ChevronRight,
     PiggyBank,
-    Wallet,
-    TrendingUp,
-    CreditCard,
+    Landmark,
+    Coins,
+    Building2,
+    Briefcase,
+    Gem,
+    LineChart,
+    Bitcoin,
+    Home,
+    Video,
+    GraduationCap
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import { cn } from "@/lib/utils";
 
-const topics = [
+// ─── Data Structures ────────────────────────────────────────────────────────
+
+type RiskLevel = "Safe" | "Moderate" | "High" | "Extremely High";
+
+interface Instrument {
+    id: string;
+    name: string;
+    risk: RiskLevel;
+    points: string[];
+    bestFor: string;
+    icon: any;
+}
+
+const instruments: Instrument[] = [
     {
-        id: "budgeting-101",
-        title: "Budgeting 101: The 50/30/20 Rule",
-        summary:
-            "Learn the simplest and most effective budgeting framework used worldwide.",
-        difficulty: "beginner",
-        category: "Budgeting",
-        readTime: 5,
-        icon: Wallet,
-        content:
-            "The 50/30/20 rule divides your after-tax income into three categories:\n\n**50% — Needs:** Rent, groceries, insurance, minimum debt payments.\n**30% — Wants:** Dining out, entertainment, subscriptions, hobbies.\n**20% — Savings & Debt:** Emergency fund, investments, extra debt payments.\n\nThis framework works because it's simple enough to follow without spreadsheets, yet structured enough to build real financial discipline.",
+        id: "savings-account",
+        name: "Savings Account",
+        risk: "Safe",
+        points: ["Your regular bank account.", "Deposit and withdraw money anytime.", "Gives very low interest.", "Highly liquid."],
+        bestFor: "Emergency money and daily transactions.",
+        icon: PiggyBank
+    },
+    {
+        id: "fixed-deposit",
+        name: "Fixed Deposit (FD)",
+        risk: "Safe",
+        points: ["Deposit money for a fixed time (1 yr, 3 yrs, etc).", "Bank gives fixed, predictable interest.", "Money is locked for the period."],
+        bestFor: "Safe and predictable returns.",
+        icon: Landmark
+    },
+    {
+        id: "recurring-deposit",
+        name: "Recurring Deposit (RD)",
+        risk: "Safe",
+        points: ["Deposit a fixed amount every month.", "Fixed interest rate mapping an FD.", "Helps build a strict savings habit."],
+        bestFor: "Small monthly savings.",
+        icon: Briefcase
+    },
+    {
+        id: "ppf",
+        name: "Public Provident Fund (PPF)",
+        risk: "Safe",
+        points: ["Long-term savings scheme backed by the government.", "Requires a 15-year lock-in period.", "Excellent tax benefits under 80C."],
+        bestFor: "Long-term safe savings & retirement.",
+        icon: ShieldCheck
+    },
+    {
+        id: "bonds",
+        name: "Bonds",
+        risk: "Moderate",
+        points: ["Lending money to a company or government.", "You earn fixed interest payouts over time.", "Usually safer than stocks."],
+        bestFor: "Medium-term predictable income.",
+        icon: Building2
+    },
+    {
+        id: "debt-mutual-funds",
+        name: "Debt Mutual Funds",
+        risk: "Moderate",
+        points: ["Funds that invest in bonds and fixed-income.", "Moderate returns with higher liquidity than FDs.", "Lower risk than stock market, but not completely risk-free."],
+        bestFor: "Medium-term goals.",
+        icon: Coins
+    },
+    {
+        id: "gold",
+        name: "Gold (Physical/Digital)",
+        risk: "Moderate",
+        points: ["Physical coins, jewelry, or Digital Gold (SGBs).", "Protects purchasing power against inflation.", "Prices fluctuate based on global demand."],
+        bestFor: "Diversification and long-term holding.",
+        icon: Gem
+    },
+    {
+        id: "equity-mutual-funds",
+        name: "Equity Mutual Funds",
+        risk: "High",
+        points: ["Funds that invest directly in stock markets.", "Higher return potential but value changes daily.", "Professionally managed by fund managers."],
+        bestFor: "Wealth creation over time (5+ years).",
+        icon: TrendingUp
+    },
+    {
+        id: "etfs",
+        name: "Exchange Traded Funds (ETFs)",
+        risk: "High",
+        points: ["Similar to mutual funds but traded actively like stocks.", "Market-linked and highly diversified.", "Low expense ratios compared to mutual funds."],
+        bestFor: "Investors who want flexibility and low fees.",
+        icon: LineChart
+    },
+    {
+        id: "direct-stocks",
+        name: "Direct Stocks (Shares)",
+        risk: "High",
+        points: ["You buy direct ownership via shares in a company.", "Highest return potential but very volatile.", "Requires deep fundamental knowledge and monitoring."],
+        bestFor: "Experienced, active investors.",
+        icon: TrendingUp
+    },
+    {
+        id: "crypto",
+        name: "Crypto Assets",
+        risk: "Extremely High",
+        points: ["Digital decentralized assets like Bitcoin.", "Extremely volatile price swings.", "Severe regulatory uncertainty in many regions."],
+        bestFor: "High-risk investors only (money you can afford to lose).",
+        icon: Bitcoin
+    },
+    {
+        id: "real-estate",
+        name: "Real Estate (Property)",
+        risk: "Moderate",
+        points: ["Buying property like apartments, land, or commercial spaces.", "Earn through capital value appreciation.", "Cash flow generation via rental yield."],
+        bestFor: "Tangible asset creation and passive rental income.",
+        icon: Home
+    }
+];
+
+const riskColors: Record<RiskLevel, string> = {
+    "Safe": "bg-green-500/10 text-green-400 border-green-500/20",
+    "Moderate": "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
+    "High": "bg-orange-500/10 text-orange-400 border-orange-500/20",
+    "Extremely High": "bg-red-500/10 text-red-400 border-red-500/20"
+};
+
+interface Course {
+    id: string;
+    title: string;
+    points: { subtitle?: string; lines: string[] }[];
+    videoUrl: string;
+}
+
+const courses: Course[] = [
+    {
+        id: "health-score",
+        title: "1. What Is a Financial Health Score and Why Should You Care?",
+        videoUrl: "https://www.youtube.com/embed/46WFDd_-Vzk",
+        points: [
+            {
+                lines: [
+                    "A Financial Health Score is a number showing how stable your money situation is.",
+                    "It looks at earning, spending, saving, and emergency preparedness."
+                ]
+            },
+            {
+                subtitle: "High Score Means:",
+                lines: ["You are financially stable.", "You save regularly.", "You can handle unexpected expenses."]
+            },
+            {
+                subtitle: "Low Score Means:",
+                lines: ["You may be overspending.", "You lack sufficient savings.", "You are financially stressed."]
+            }
+        ]
+    },
+    {
+        id: "start-saving",
+        title: "2. How to Start Saving Money (Even If Your Income Is Small)",
+        videoUrl: "https://www.youtube.com/embed/Y8vYc4V9J2E",
+        points: [
+            {
+                lines: [
+                    "You don’t need a big income to start saving.",
+                    "Consistency is much more important than the exact amount."
+                ]
+            },
+            {
+                subtitle: "Start Small:",
+                lines: [
+                    "Save 5–10% of your income first.",
+                    "Avoid unnecessary lifestyle spending.",
+                    "Automate your savings directly from your paycheck.",
+                    "Increase the savings percentage slowly over time."
+                ]
+            }
+        ]
+    },
+    {
+        id: "track-spending",
+        title: "3. Where Does My Money Go? Understanding Spending",
+        videoUrl: "https://www.youtube.com/embed/KjYfGz1b7Y8",
+        points: [
+            {
+                lines: [
+                    "Most people don’t realize how microscopic daily expenses add up into huge leaks.",
+                    "Awareness is always the first step to financial control."
+                ]
+            },
+            {
+                subtitle: "How to fix it:",
+                lines: [
+                    "Track literally every expense for 30 consecutive days.",
+                    "Check your bank statements thoroughly.",
+                    "Identify your absolute biggest spending categories.",
+                    "Focus on reducing pure waste, not your essential needs."
+                ]
+            }
+        ]
     },
     {
         id: "emergency-fund",
-        title: "Why You Need an Emergency Fund",
-        summary:
-            "An emergency fund is the foundation of financial security.",
-        difficulty: "beginner",
-        category: "Savings",
-        readTime: 4,
-        icon: PiggyBank,
-        content:
-            "An emergency fund covers 3-6 months of essential expenses. Start with ₹25,000 as a mini goal, then build to one month's expenses. Keep it in a high-yield savings account — accessible but separate from daily spending.",
+        title: "4. Why An Emergency Fund Saves You From Stress",
+        videoUrl: "https://www.youtube.com/embed/U9mXv5zE8WQ",
+        points: [
+            {
+                lines: [
+                    "An emergency fund is strictly money mapped aside for the unexpected: Job loss, Medical emergencies, Sudden massive expenses."
+                ]
+            },
+            {
+                subtitle: "The Goal:",
+                lines: [
+                    "Aim for 3 to 6 months of your bare-minimum living expenses.",
+                    "It buys you absolute peace of mind.",
+                    "It acts as financial safety scaffolding.",
+                    "It provides pure confidence during tough times instead of panic."
+                ]
+            }
+        ]
     },
     {
-        id: "compound-interest",
-        title: "The Magic of Compound Interest",
-        summary:
-            "Understanding how your money grows exponentially over time.",
-        difficulty: "intermediate",
-        category: "Investing",
-        readTime: 6,
-        icon: TrendingUp,
-        content:
-            "Compound interest means earning interest on your interest. If you invest ₹10,000 at 8% annual return:\n- Year 1: ₹10,800\n- Year 10: ₹21,589\n- Year 30: ₹1,00,627\n\nThe key insight: time in the market beats timing the market. Starting early, even with small amounts, dramatically outperforms starting late with large sums.",
+        id: "fd-mf-gold",
+        title: "5. Fixed Deposit vs Mutual Fund vs Gold",
+        videoUrl: "https://www.youtube.com/embed/7e8kY0m2Y6Q",
+        points: [
+            {
+                subtitle: "Fixed Deposit (FD):",
+                lines: ["Safe, fixed return guarantees.", "Extremely low risk."]
+            },
+            {
+                subtitle: "Mutual Funds:",
+                lines: ["Invests in the broader stock market.", "Significantly higher return potential, but inherently higher risk."]
+            },
+            {
+                subtitle: "Gold:",
+                lines: ["Protects buying power against systemic inflation.", "Medium volatility/risk."]
+            }
+        ]
     },
     {
-        id: "debt-avalanche",
-        title: "Debt Avalanche vs Debt Snowball",
-        summary:
-            "Two proven strategies to eliminate debt systematically.",
-        difficulty: "intermediate",
-        category: "Debt Management",
-        readTime: 7,
-        icon: CreditCard,
-        content:
-            "**Avalanche (Math-Optimal):** Pay minimums on all debts, throw extra money at the highest interest rate debt first. Saves the most money.\n\n**Snowball (Psychology-Optimal):** Pay off smallest balance first for quick wins. The motivation boost helps people stick with the plan.\n\nBoth work. Choose the one that matches your personality.",
+        id: "how-much-save",
+        title: "6. How Much Should You Actually Save Every Month?",
+        videoUrl: "https://www.youtube.com/embed/9tKc5n6k3Q4",
+        points: [
+            {
+                lines: [
+                    "There is no single 'perfect' number, but general guidelines exist."
+                ]
+            },
+            {
+                subtitle: "General Benchmarks:",
+                lines: [
+                    "Absolute Minimum: 10% of your income.",
+                    "Ideal Range: 20–30% (if your income supports it)."
+                ]
+            },
+            {
+                subtitle: "If income is low:",
+                lines: [
+                    "Start with literally any amount.",
+                    "Increase it gradually as income scales.",
+                    "Ensure savings are regular, automated, and mapped to specific goals."
+                ]
+            }
+        ]
     },
+    {
+        id: "lost-job",
+        title: "7. What Happens If You Lose Your Job? Staying Safe",
+        videoUrl: "https://www.youtube.com/embed/5ZkP2Y9vH4E",
+        points: [
+            {
+                lines: ["Planning heavily in advance heavily reduces the physiological panic of sudden income loss."]
+            },
+            {
+                subtitle: "If your income stops suddenly:",
+                lines: [
+                    "Deploy the emergency fund immediately.",
+                    "Slash non-essential lifestyle expenses the same day.",
+                    "Aggressively avoid taking on new high-interest loans/credit.",
+                    "Pivot immediately to finding short-term gig/freelance income to float."
+                ]
+            }
+        ]
+    },
+    {
+        id: "money-mistakes",
+        title: "8. Common Money Mistakes Ruining Your Savings",
+        videoUrl: "https://www.youtube.com/embed/J7h3F2kLm5Y",
+        points: [
+            {
+                lines: ["Small miscalculations repeated daily/monthly compound into catastrophic losses yearly."]
+            },
+            {
+                subtitle: "The classic mistakes:",
+                lines: [
+                    "Not tracking where your cash flows.",
+                    "Overspending drastically on lifestyle inflation.",
+                    "Using credit/EMIs totally unnecessarily for depreciating liabilities.",
+                    "Ignoring small daily 'leak' expenses (like expensive coffees).",
+                    "Failing to plan for a 10+ year time horizon."
+                ]
+            }
+        ]
+    },
+    {
+        id: "reducing-expenses",
+        title: "9. How to Reduce Expenses Without Feeling Trapped",
+        videoUrl: "https://www.youtube.com/embed/8jFhL4qX6JY",
+        points: [
+            {
+                lines: [
+                    "You don’t need to stop enjoying your life to be financially responsible.",
+                    "Smart deliberate spending is infinitely better than strict suffocating restriction."
+                ]
+            },
+            {
+                subtitle: "Actionable Steps:",
+                lines: [
+                    "Cut pure systemic waste, not things that bring you deep happiness.",
+                    "Audit and purge unused subscriptions heavily.",
+                    "Instigate price comparison rules before buying.",
+                    "Cook more at home as replacing dining out is huge.",
+                    "Enforce a '30-day waiting rule' on large impulse purchases."
+                ]
+            }
+        ]
+    },
+    {
+        id: "ai-finance",
+        title: "10. How AI Can Supercharge Your Financial Future",
+        videoUrl: "https://www.youtube.com/embed/H6f4k8dR9K0",
+        points: [
+            {
+                lines: ["AI acts as a tireless, ultra-rational calculator that works 24/7 for you."]
+            },
+            {
+                subtitle: "How systems like ArthNiti help:",
+                lines: [
+                    "Categorize and track vast spreadsheets of spending automatically.",
+                    "Predict upcoming cash flow crunches before they happen.",
+                    "Map out dynamic savings improvement strategies.",
+                    "Actively alert you of financial anomalies or risks in real-time.",
+                    "Run massively complex 'what-if' simulation scenarios instantly."
+                ]
+            }
+        ]
+    }
 ];
 
-const difficultyColors: Record<string, string> = {
-    beginner: "text-blue-400 bg-blue-500/10 border-blue-500/20",
-    intermediate: "text-yellow-400 bg-yellow-500/10 border-yellow-500/20",
-    advanced: "text-red-400 bg-red-500/10 border-red-500/20",
-};
+// ─── Main Component ─────────────────────────────────────────────────────────
 
 export default function LiteracyPage() {
-    const [expanded, setExpanded] = useState<string | null>(null);
+    const [activeTab, setActiveTab] = useState<"instruments" | "courses">("instruments");
+    const [expandedCourse, setExpandedCourse] = useState<string | null>(null);
 
     return (
         <div className="min-h-screen">
             <Navbar />
-            <main className="max-w-4xl mx-auto px-4 pt-24 pb-12">
-                {/* Header */}
+            <main className="max-w-5xl mx-auto px-4 pt-24 pb-20">
+                {/* Header Section */}
                 <motion.div
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="mb-8"
+                    className="text-center mb-10 max-w-2xl mx-auto"
                 >
-                    <div className="flex items-center gap-3 mb-2">
-                        <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
-                            <BookOpen className="w-5 h-5 text-blue-400" />
-                        </div>
-                        <h1 className="text-3xl font-bold text-[var(--color-text-primary)]">
-                            Financial <span className="text-gradient">Literacy Hub</span>
-                        </h1>
+                    <div className="inline-flex items-center justify-center p-3 rounded-2xl bg-blue-500/10 mb-4">
+                        <GraduationCap className="w-8 h-8 text-blue-500" />
                     </div>
-                    <p className="text-[var(--color-text-muted)]">
-                        Master the fundamentals of personal finance — one topic at a time
+                    <h1 className="text-3xl md:text-4xl font-bold text-[var(--color-text-primary)] mb-3">
+                        Financial <span className="text-gradient">Literacy Academy</span>
+                    </h1>
+                    <p className="text-[var(--color-text-muted)] text-sm md:text-base leading-relaxed">
+                        Master the fundamentals of wealth creation. Choose between exploring standard
+                        financial instruments or watching deep-dive masterclasses.
                     </p>
                 </motion.div>
 
-                {/* Topics Grid */}
-                <div className="space-y-4">
-                    {topics.map((topic, i) => {
-                        const isOpen = expanded === topic.id;
-                        const Icon = topic.icon;
-
-                        return (
-                            <motion.div
-                                key={topic.id}
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: i * 0.08 }}
-                                className="card overflow-hidden"
-                            >
-                                <button
-                                    onClick={() => setExpanded(isOpen ? null : topic.id)}
-                                    className="w-full p-6 text-left flex items-start gap-4"
-                                >
-                                    <div className="w-11 h-11 rounded-xl bg-blue-500/10 flex items-center justify-center flex-shrink-0">
-                                        <Icon className="w-5 h-5 text-blue-400" />
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2 mb-1.5">
-                                            <h3 className="text-lg font-semibold text-[var(--color-text-primary)]">
-                                                {topic.title}
-                                            </h3>
-                                            <span
-                                                className={cn(
-                                                    "px-2 py-0.5 rounded-full text-xs font-medium border",
-                                                    difficultyColors[topic.difficulty]
-                                                )}
-                                            >
-                                                {topic.difficulty}
-                                            </span>
-                                        </div>
-                                        <p className="text-sm text-[var(--color-text-muted)]">
-                                            {topic.summary}
-                                        </p>
-                                        <div className="flex items-center gap-3 mt-2 text-xs text-[var(--color-text-dim)]">
-                                            <span className="flex items-center gap-1">
-                                                <Clock className="w-3 h-3" /> {topic.readTime} min read
-                                            </span>
-                                            <span>{topic.category}</span>
-                                        </div>
-                                    </div>
-                                    <ChevronRight
-                                        className={cn(
-                                            "w-5 h-5 text-[var(--color-text-dim)] transition-transform flex-shrink-0 mt-1",
-                                            isOpen && "rotate-90"
-                                        )}
-                                    />
-                                </button>
-
-                                <AnimatePresence>
-                                    {isOpen && (
-                                        <motion.div
-                                            initial={{ height: 0, opacity: 0 }}
-                                            animate={{ height: "auto", opacity: 1 }}
-                                            exit={{ height: 0, opacity: 0 }}
-                                            transition={{ duration: 0.3 }}
-                                            className="overflow-hidden"
-                                        >
-                                            <div className="px-6 pb-6 pt-0 pl-[5.75rem]">
-                                                <div className="text-sm text-[var(--color-text-muted)] leading-relaxed whitespace-pre-line border-t border-[var(--color-border)] pt-4">
-                                                    {topic.content}
-                                                </div>
-                                            </div>
-                                        </motion.div>
-                                    )}
-                                </AnimatePresence>
-                            </motion.div>
-                        );
-                    })}
+                {/* Tab Switcher */}
+                <div className="flex bg-[var(--color-bg-elevated)] p-1.5 rounded-2xl max-w-sm mx-auto mb-10 border border-[var(--color-border)]">
+                    <button
+                        onClick={() => setActiveTab("instruments")}
+                        className={cn(
+                            "flex-1 py-2.5 text-sm font-medium rounded-xl transition-all",
+                            activeTab === "instruments"
+                                ? "bg-blue-600 text-white shadow-lg shadow-blue-500/20"
+                                : "text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]"
+                        )}
+                    >
+                        Financial Instruments
+                    </button>
+                    <button
+                        onClick={() => setActiveTab("courses")}
+                        className={cn(
+                            "flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium rounded-xl transition-all",
+                            activeTab === "courses"
+                                ? "bg-red-600 text-white shadow-lg shadow-red-500/20"
+                                : "text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]"
+                        )}
+                    >
+                        <PlayCircle className="w-4 h-4" /> Video Masterclasses
+                    </button>
                 </div>
+
+                {/* TAB CONTENT: Financial Instruments */}
+                {activeTab === "instruments" && (
+                    <motion.div
+                        key="instruments"
+                        initial={{ opacity: 0, scale: 0.98 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.3 }}
+                    >
+                        {/* Summary Bar */}
+                        <div className="pl-4 pr-10 py-5 bg-gradient-to-r from-[var(--color-bg-primary)] to-[var(--color-bg-elevated)] border border-[var(--color-border)] rounded-2xl mb-8 flex items-center overflow-x-auto no-scrollbar shadow-sm">
+                            <div className="flex items-center whitespace-nowrap">
+                                <span className="text-xs font-bold text-[var(--color-text-dim)] uppercase tracking-widest mr-4 ml-2">Risk Scale:</span>
+                                <span className="text-green-400 font-semibold text-sm">Safe</span>
+                                <ChevronRight className="w-4 h-4 text-[var(--color-text-dim)] mx-1" />
+                                <span className="text-yellow-400 font-semibold text-sm">Moderate</span>
+                                <ChevronRight className="w-4 h-4 text-[var(--color-text-dim)] mx-1" />
+                                <span className="text-orange-400 font-semibold text-sm">High</span>
+                                <ChevronRight className="w-4 h-4 text-[var(--color-text-dim)] mx-1" />
+                                <span className="text-red-400 font-semibold text-sm">Extremely High</span>
+                            </div>
+                        </div>
+
+                        {/* Instruments Grid */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                            {instruments.map((inst, i) => {
+                                const Icon = inst.icon;
+                                return (
+                                    <motion.div
+                                        key={inst.id}
+                                        initial={{ opacity: 0, y: 15 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: i * 0.05 }}
+                                        className="card p-5 group hover:border-[var(--color-border-hover)] transition-all flex flex-col h-full"
+                                    >
+                                        <div className="flex items-start justify-between mb-4">
+                                            <div className="w-10 h-10 rounded-xl bg-[var(--color-bg-primary)] flex items-center justify-center border border-[var(--color-border)] group-hover:scale-110 transition-transform">
+                                                <Icon className="w-5 h-5 text-blue-400" />
+                                            </div>
+                                            <span className={cn("text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full border", riskColors[inst.risk])}>
+                                                {inst.risk}
+                                            </span>
+                                        </div>
+                                        <h3 className="text-lg font-bold text-[var(--color-text-primary)] mb-3">{inst.name}</h3>
+                                        <ul className="text-sm text-[var(--color-text-muted)] space-y-2 flex-grow mb-5">
+                                            {inst.points.map((pt, idx) => (
+                                                <li key={idx} className="flex items-start gap-2">
+                                                    <span className="text-blue-500 mt-1 flex-shrink-0">•</span>
+                                                    <span className="leading-relaxed">{pt}</span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                        <div className="pt-4 border-t border-[var(--color-border)] mt-auto">
+                                            <p className="text-xs font-medium text-[var(--color-text-dim)] mb-1 uppercase tracking-wide">Best For</p>
+                                            <p className="text-sm text-blue-300 font-medium">{inst.bestFor}</p>
+                                        </div>
+                                    </motion.div>
+                                );
+                            })}
+                        </div>
+                    </motion.div>
+                )}
+
+                {/* TAB CONTENT: Video Courses */}
+                {activeTab === "courses" && (
+                    <motion.div
+                        key="courses"
+                        initial={{ opacity: 0, scale: 0.98 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.3 }}
+                        className="max-w-3xl mx-auto space-y-4"
+                    >
+                        {courses.map((course, i) => {
+                            const isOpen = expandedCourse === course.id;
+
+                            return (
+                                <motion.div
+                                    key={course.id}
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: i * 0.04 }}
+                                    className={cn("card overflow-hidden transition-all duration-300", isOpen ? "border-red-500/30 shadow-lg shadow-red-500/5" : "")}
+                                >
+                                    <button
+                                        onClick={() => setExpandedCourse(isOpen ? null : course.id)}
+                                        className="w-full p-6 text-left flex items-start justify-between gap-4"
+                                    >
+                                        <div className="flex items-start gap-4">
+                                            <div className="w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center flex-shrink-0 mt-0.5 group-hover:bg-red-500/20 transition-colors">
+                                                <Video className="w-4 h-4 text-red-500" />
+                                            </div>
+                                            <div>
+                                                <h3 className={cn("text-base md:text-lg font-bold transition-colors", isOpen ? "text-red-400" : "text-[var(--color-text-primary)]")}>
+                                                    {course.title}
+                                                </h3>
+                                                <p className="text-xs text-[var(--color-text-dim)] mt-1 flex items-center gap-1.5">
+                                                    <PlayCircle className="w-3 h-3" /> YouTube Masterclass
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className={cn("p-2 rounded-full bg-[var(--color-bg-primary)] transition-transform flex-shrink-0", isOpen && "rotate-180")}>
+                                            <ChevronRight className="w-4 h-4 text-[var(--color-text-dim)]" />
+                                        </div>
+                                    </button>
+
+                                    <AnimatePresence>
+                                        {isOpen && (
+                                            <motion.div
+                                                initial={{ height: 0, opacity: 0 }}
+                                                animate={{ height: "auto", opacity: 1 }}
+                                                exit={{ height: 0, opacity: 0 }}
+                                                transition={{ duration: 0.3, ease: "easeInOut" }}
+                                            >
+                                                <div className="px-6 pb-6 pt-2">
+                                                    {/* Video Embed */}
+                                                    <div className="relative w-full rounded-xl overflow-hidden mb-6 bg-black flex aspect-auto" style={{ paddingBottom: '56.25%' }}>
+                                                        <iframe
+                                                            src={course.videoUrl}
+                                                            className="absolute top-0 left-0 w-full h-full border-0"
+                                                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                                            allowFullScreen
+                                                        />
+                                                    </div>
+
+                                                    {/* Course Notes */}
+                                                    <div className="bg-[var(--color-bg-primary)] p-5 rounded-2xl border border-[var(--color-border)]">
+                                                        <h4 className="text-sm font-bold text-[var(--color-text-primary)] mb-4 flex items-center gap-2">
+                                                            <BookOpen className="w-4 h-4 text-blue-400" /> Key Takeaways
+                                                        </h4>
+
+                                                        <div className="space-y-4">
+                                                            {course.points.map((pt, pIdx) => (
+                                                                <div key={pIdx}>
+                                                                    {pt.subtitle && <p className="text-sm font-semibold text-blue-300 mb-2">{pt.subtitle}</p>}
+                                                                    <ul className="space-y-2">
+                                                                        {pt.lines.map((line, lIdx) => (
+                                                                            <li key={lIdx} className="text-sm text-[var(--color-text-muted)] flex items-start gap-2 leading-relaxed">
+                                                                                <span className="text-[var(--color-text-dim)] mt-1 text-xs">▹</span>
+                                                                                {line}
+                                                                            </li>
+                                                                        ))}
+                                                                    </ul>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+                                </motion.div>
+                            );
+                        })}
+                    </motion.div>
+                )}
             </main>
         </div>
     );

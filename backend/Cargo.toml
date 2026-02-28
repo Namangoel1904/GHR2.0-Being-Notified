@@ -38,7 +38,7 @@ rand = "0.8"
 base64 = "0.22"
 
 # === HTTP Client (for Ollama) ===
-reqwest = { version = "0.12", default-features = false, features = ["json", "stream", "rustls-tls"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "stream", "rustls-tls", "multipart"] }
 futures = "0.3"
 tokio-stream = "0.1"
 
@@ -52,3 +52,8 @@ url = "2"
 hex = "0.4"
 async-stream = "0.3"
 dashmap = "6"
+csv = "1.4.0"
+pdf-extract = "0.10.0"
+multer = "3.1.0"
+bytes = "1.11.1"
+regex = "1.12.3"

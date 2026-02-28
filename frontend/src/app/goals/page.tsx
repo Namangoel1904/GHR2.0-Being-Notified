@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import useSWR from "swr";
 import {
     Target,
     Plus,
@@ -20,6 +21,9 @@ import {
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import { cn } from "@/lib/utils";
+import toast, { Toaster } from "react-hot-toast";
+
+const fetcher = (url: string) => fetch(url).then(r => r.json());
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -200,8 +204,55 @@ function GoalCard({ goal }: { goal: Goal }) {
 
 // ─── Create Goal Modal ──────────────────────────────────────────────────────
 
-function CreateGoalModal({ onClose }: { onClose: () => void }) {
+function CreateGoalModal({ onClose, onSuccess }: { onClose: () => void, onSuccess: () => void }) {
     const [goalType, setGoalType] = useState<GoalType | null>(null);
+    const [name, setName] = useState("");
+    const [targetAmount, setTargetAmount] = useState("");
+    const [timeframe, setTimeframe] = useState("1 year");
+    const [monthlyContribution, setMonthlyContribution] = useState("");
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+    const handleSubmit = async () => {
+        if (!name || !targetAmount || !goalType) {
+            toast.error("Please fill in Goal Name, Target Amount, and select a Goal Type");
+            return;
+        }
+
+        setIsAnalyzing(true);
+        // Simulate AI Analysis
+        await new Promise(resolve => setTimeout(resolve, 1500));
+
+        try {
+            const years = parseInt(timeframe.split(" ")[0]) || 1;
+            const deadline = new Date();
+            deadline.setFullYear(deadline.getFullYear() + years);
+
+            const payload = {
+                title: name,
+                target_amount: Number(targetAmount),
+                current_amount: 0,
+                deadline: deadline.toISOString().split("T")[0],
+                category: goalType
+            };
+
+            const response = await fetch("http://localhost:8080/api/dashboard/goals", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+            });
+            const result = await response.json();
+            if (result.success) {
+                toast.success("AI Analysis Complete: Goal Added & Optimized!");
+                onSuccess();
+            } else {
+                toast.error(result.error || "Failed to add goal");
+            }
+        } catch (error) {
+            toast.error("Failed to connect to server");
+        } finally {
+            setIsAnalyzing(false);
+        }
+    };
 
     return (
         <motion.div
@@ -253,6 +304,8 @@ function CreateGoalModal({ onClose }: { onClose: () => void }) {
                         <label className="text-sm text-[var(--color-text-muted)] mb-1.5 block">Goal Name</label>
                         <input
                             type="text"
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
                             placeholder="e.g., Dream Home Down Payment"
                             className="w-full px-4 py-3 rounded-xl bg-[var(--color-bg-primary)] border border-[var(--color-border)] text-[var(--color-text-primary)] text-sm focus:outline-none focus:border-blue-500/40"
                         />
@@ -262,13 +315,19 @@ function CreateGoalModal({ onClose }: { onClose: () => void }) {
                             <label className="text-sm text-[var(--color-text-muted)] mb-1.5 block">Target Amount (₹)</label>
                             <input
                                 type="number"
-                                placeholder="5,00,000"
+                                value={targetAmount}
+                                onChange={(e) => setTargetAmount(e.target.value)}
+                                placeholder="500000"
                                 className="w-full px-4 py-3 rounded-xl bg-[var(--color-bg-primary)] border border-[var(--color-border)] text-[var(--color-text-primary)] text-sm focus:outline-none focus:border-blue-500/40"
                             />
                         </div>
                         <div>
                             <label className="text-sm text-[var(--color-text-muted)] mb-1.5 block">Timeframe</label>
-                            <select className="w-full px-4 py-3 rounded-xl bg-[var(--color-bg-primary)] border border-[var(--color-border)] text-[var(--color-text-primary)] text-sm focus:outline-none focus:border-blue-500/40">
+                            <select
+                                value={timeframe}
+                                onChange={(e) => setTimeframe(e.target.value)}
+                                className="w-full px-4 py-3 rounded-xl bg-[var(--color-bg-primary)] border border-[var(--color-border)] text-[var(--color-text-primary)] text-sm focus:outline-none focus:border-blue-500/40"
+                            >
                                 <option>6 months</option>
                                 <option>1 year</option>
                                 <option>2 years</option>
@@ -282,7 +341,9 @@ function CreateGoalModal({ onClose }: { onClose: () => void }) {
                             <label className="text-sm text-[var(--color-text-muted)] mb-1.5 block">Monthly Contribution (₹)</label>
                             <input
                                 type="number"
-                                placeholder="10,000"
+                                value={monthlyContribution}
+                                onChange={(e) => setMonthlyContribution(e.target.value)}
+                                placeholder="10000"
                                 className="w-full px-4 py-3 rounded-xl bg-[var(--color-bg-primary)] border border-[var(--color-border)] text-[var(--color-text-primary)] text-sm focus:outline-none focus:border-blue-500/40"
                             />
                         </div>
@@ -297,8 +358,21 @@ function CreateGoalModal({ onClose }: { onClose: () => void }) {
                     </div>
                 </div>
 
-                <button className="w-full mt-6 py-3.5 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 text-white font-semibold text-sm hover:from-blue-500 hover:to-blue-400 transition-all shadow-lg shadow-blue-500/25 flex items-center justify-center gap-2">
-                    <Sparkles className="w-4 h-4" /> Create Goal & Get AI Analysis
+                <button
+                    onClick={handleSubmit}
+                    disabled={isAnalyzing}
+                    className="w-full mt-6 py-3.5 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 text-white font-semibold text-sm hover:from-blue-500 hover:to-blue-400 transition-all shadow-lg shadow-blue-500/25 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                >
+                    {isAnalyzing ? (
+                        <>
+                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                            AI Analyzing Feasibility...
+                        </>
+                    ) : (
+                        <>
+                            <Sparkles className="w-4 h-4" /> Create Goal & Get AI Analysis
+                        </>
+                    )}
                 </button>
             </motion.div>
         </motion.div>
@@ -308,8 +382,47 @@ function CreateGoalModal({ onClose }: { onClose: () => void }) {
 // ─── Main Page ──────────────────────────────────────────────────────────────
 
 export default function GoalsPage() {
-    const [goals] = useState<Goal[]>(initialGoals);
+    const { data: dbData, mutate } = useSWR('http://localhost:8080/api/dashboard/goals', fetcher);
     const [showCreate, setShowCreate] = useState(false);
+
+    // Map backend goals to UI interface
+    let goals: Goal[] = [];
+    if (dbData?.success && dbData.goals?.length > 0) {
+        const validTypes = ["car", "house", "business", "emergency", "education"];
+        goals = dbData.goals.map((bg: any) => {
+            const currentAmount = bg.current_amount || 0;
+            const targetAmount = bg.target_amount || 1; // avoid /0
+            const remaining = Math.max(0, targetAmount - currentAmount);
+
+            // Calc months left based on deadline
+            const d = new Date(bg.deadline || new Date());
+            const months = Math.max(1, (d.getFullYear() - new Date().getFullYear()) * 12 + d.getMonth() - new Date().getMonth());
+
+            const reqMonthly = Math.ceil(remaining / months);
+
+            const t = bg.category?.toLowerCase() || "";
+            const mappedType = validTypes.includes(t) ? t as GoalType : "emergency";
+
+            // Randomish but deterministic feasibility based on ratio
+            const ratio = currentAmount / targetAmount;
+            const feasibilityScore = Math.min(98, Math.floor(70 + ratio * 30));
+
+            return {
+                id: bg.id,
+                type: mappedType,
+                name: bg.title,
+                targetAmount,
+                currentAmount,
+                monthlyContribution: reqMonthly, // simulate user contributing exactly what's req
+                timelineMonths: months,
+                priority: "high",
+                feasibilityScore,
+                requiredMonthly: reqMonthly
+            };
+        });
+    } else if (!dbData || !dbData.success) {
+        goals = initialGoals; // fallback before load or if error
+    }
 
     const totalTarget = goals.reduce((s, g) => s + g.targetAmount, 0);
     const totalSaved = goals.reduce((s, g) => s + g.currentAmount, 0);
@@ -317,6 +430,7 @@ export default function GoalsPage() {
 
     return (
         <div className="min-h-screen">
+            <Toaster position="top-right" />
             <Navbar />
             <main className="max-w-7xl mx-auto px-4 pt-24 pb-12">
                 {/* Header */}
@@ -385,7 +499,7 @@ export default function GoalsPage() {
 
                 {/* Create Modal */}
                 <AnimatePresence>
-                    {showCreate && <CreateGoalModal onClose={() => setShowCreate(false)} />}
+                    {showCreate && <CreateGoalModal onClose={() => setShowCreate(false)} onSuccess={() => { setShowCreate(false); mutate(); }} />}
                 </AnimatePresence>
             </main>
         </div>

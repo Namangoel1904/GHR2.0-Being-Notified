@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
     PieChart,
     Pie,
@@ -32,11 +32,15 @@ import {
     WifiOff,
     RefreshCw,
     Award,
+    X,
 } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 import Navbar from "@/components/Navbar";
 import { cn, formatCurrency } from "@/lib/utils";
 import { useOnboardingProfile } from "@/hooks/useFinancialData";
+import useSWR from "swr";
+
+const fetcher = (url: string) => fetch(url).then(r => r.json());
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -176,6 +180,52 @@ export default function DashboardPage() {
     const [goalAmount, setGoalAmount] = useState(0);
     const [goalTimeframe, setGoalTimeframe] = useState("");
 
+    // Real Goals SWR Fetching
+    const { data: goalsData, mutate: mutateGoals } = useSWR('http://localhost:8080/api/dashboard/goals', fetcher);
+    const realGoals = goalsData?.goals || [];
+
+    // Modal States
+    const [showGoalModal, setShowGoalModal] = useState(false);
+    const [isSubmittingGoal, setIsSubmittingGoal] = useState(false);
+    const [newGoalForm, setNewGoalForm] = useState({
+        title: "",
+        target_amount: "",
+        deadline: "",
+        category: "General"
+    });
+
+    // Zero-state initialization: Push onboarding goal
+    const [hasAttemptedGoalSync, setHasAttemptedGoalSync] = useState(false);
+
+    useEffect(() => {
+        if (!goalsData || hasAttemptedGoalSync) return;
+
+        if (goalsData.success && realGoals.length === 0 && primaryGoal && primaryGoal !== "Not set") {
+            const tempNetSavings = totalIncome - Object.values(categorySpending).reduce((sum, v) => sum + v, 0);
+            const initialGoal = {
+                title: primaryGoal,
+                target_amount: goalAmount > 0 ? goalAmount : totalIncome * 12,
+                current_amount: tempNetSavings > 0 ? tempNetSavings * 3 : 0,
+                deadline: null,
+                category: "primary"
+            };
+
+            fetch('http://localhost:8080/api/dashboard/goals', {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(initialGoal),
+            })
+                .then(r => r.json())
+                .then(res => {
+                    if (res.success) {
+                        mutateGoals();
+                    }
+                })
+                .catch(console.error);
+        }
+        setHasAttemptedGoalSync(true);
+    }, [goalsData, hasAttemptedGoalSync, primaryGoal, goalAmount, totalIncome, categorySpending, mutateGoals]);
+
     useEffect(() => {
         // Gate: redirect to auth if not logged in
         const token = localStorage.getItem("session_token");
@@ -228,6 +278,39 @@ export default function DashboardPage() {
 
         setOnboardingChecked(true);
     }, []);
+
+    const handleGoalSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsSubmittingGoal(true);
+        try {
+            const payload = {
+                title: newGoalForm.title,
+                target_amount: Number(newGoalForm.target_amount),
+                current_amount: 0,
+                deadline: newGoalForm.deadline || undefined,
+                category: newGoalForm.category,
+            };
+            const response = await fetch("http://localhost:8080/api/dashboard/goals", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+            });
+            const result = await response.json();
+            if (result.success) {
+                setShowGoalModal(false);
+                setNewGoalForm({ title: "", target_amount: "", deadline: "", category: "General" });
+                mutateGoals();
+                toast.success("Goal added successfully!");
+            } else {
+                toast.error(result.error || "Failed to add goal");
+            }
+        } catch (error) {
+            toast.error("Failed to connect to server");
+            console.error(error);
+        } finally {
+            setIsSubmittingGoal(true);
+        }
+    };
 
     // ── Derived values ──
     const totalSpent = Object.values(categorySpending).reduce((sum, v) => sum + v, 0);
@@ -290,12 +373,8 @@ export default function DashboardPage() {
         alerts.push({ id: "good", message: "Your finances look healthy! Keep maintaining your good habits.", severity: "low" });
     }
 
-    // Goals from questionnaire
-    const goals = goalAmount > 0
-        ? [{ id: "primary", title: primaryGoal, target_amount: goalAmount, current_amount: Math.round(netSavings > 0 ? netSavings * 3 : 0), category: "primary" }]
-        : primaryGoal && primaryGoal !== "Not set"
-            ? [{ id: "primary", title: primaryGoal, target_amount: totalIncome * 12, current_amount: Math.round(netSavings > 0 ? netSavings * 3 : 0), category: "primary" }]
-            : [];
+    // Goals UI mapping
+    const goals = realGoals.length > 0 ? realGoals : [];
 
     // Fire toast on high-severity alerts
     useEffect(() => {
@@ -412,6 +491,31 @@ export default function DashboardPage() {
                             </div>
                         </motion.div>
                     </div>
+                    {
+                        displayInsights.length > 0 && (
+                            <motion.div variants={itemVariants} className="card p-6">
+                                <div className="flex items-center gap-2 mb-4">
+                                    <Sparkles className="w-5 h-5 text-blue-400" />
+                                    <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">AI Insights</h2>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    {displayInsights.map((insight, i) => {
+                                        const borderColor = insight.priority === "high"
+                                            ? "border-red-500/20 bg-red-500/5"
+                                            : insight.priority === "medium"
+                                                ? "border-yellow-500/20 bg-yellow-500/5"
+                                                : "border-blue-500/20 bg-blue-500/5";
+                                        return (
+                                            <div key={i} className={cn("p-4 rounded-xl border", borderColor)}>
+                                                <h3 className="text-sm font-semibold text-[var(--color-text-primary)] mb-2">{insight.title}</h3>
+                                                <p className="text-xs text-[var(--color-text-muted)] leading-relaxed">{insight.description}</p>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </motion.div>
+                        )
+                    }
 
                     {/* Spending + Alerts + Goals */}
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -422,7 +526,7 @@ export default function DashboardPage() {
                                 <>
                                     <ResponsiveContainer width="100%" height={200}>
                                         <PieChart>
-                                            <Pie data={chartData} cx="50%" cy="50%" innerRadius={55} outerRadius={85} paddingAngle={3} dataKey="total">
+                                            <Pie data={chartData} cx="50%" cy="50%" innerRadius={55} outerRadius={85} paddingAngle={3} dataKey="total" nameKey="category">
                                                 {chartData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
                                             </Pie>
                                             <Tooltip content={({ active, payload }) =>
@@ -479,19 +583,24 @@ export default function DashboardPage() {
                         <motion.div variants={itemVariants} className="card p-6">
                             <div className="flex items-center justify-between mb-4">
                                 <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">Savings Goals</h2>
-                                <button className="w-7 h-7 rounded-lg bg-blue-500/10 flex items-center justify-center hover:bg-blue-500/20 transition-colors">
+                                <button onClick={() => setShowGoalModal(true)} className="w-7 h-7 rounded-lg bg-blue-500/10 flex items-center justify-center hover:bg-blue-500/20 transition-colors cursor-pointer">
                                     <Plus className="w-4 h-4 text-blue-400" />
                                 </button>
                             </div>
                             {goals.length === 0 ? <p className="text-sm text-[var(--color-text-muted)] py-4 text-center">Set a goal in onboarding to track progress</p> : (
                                 <div className="space-y-4">
-                                    {goals.map((goal) => {
+                                    {goals.map((goal: any) => {
                                         const progress = (goal.current_amount / goal.target_amount) * 100;
                                         return (
                                             <div key={goal.id ?? goal.title}>
                                                 <div className="flex items-center justify-between mb-1.5">
-                                                    <span className="text-sm text-[var(--color-text-secondary)]">{goal.title}</span>
-                                                    <span className="text-xs text-[var(--color-text-muted)]">{progress.toFixed(0)}%</span>
+                                                    <div>
+                                                        <span className="text-sm font-medium text-[var(--color-text-primary)]">{goal.title}</span>
+                                                        <span className="text-xs text-[var(--color-text-muted)] block mt-0.5" style={{ textTransform: 'capitalize' }}>
+                                                            Target: {goal.deadline}
+                                                        </span>
+                                                    </div>
+                                                    <span className="text-xs font-semibold text-blue-400">{progress.toFixed(0)}%</span>
                                                 </div>
                                                 <div className="h-2 rounded-full bg-[var(--color-bg-primary)] overflow-hidden">
                                                     <motion.div
@@ -529,32 +638,82 @@ export default function DashboardPage() {
                         </ResponsiveContainer>
                     </motion.div>
 
-                    {/* AI Insight Cards */}
-                    {displayInsights.length > 0 && (
-                        <motion.div variants={itemVariants} className="card p-6">
-                            <div className="flex items-center gap-2 mb-4">
-                                <Sparkles className="w-5 h-5 text-blue-400" />
-                                <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">AI Insights</h2>
+
+                </motion.div >
+            </main >
+
+            <AnimatePresence>
+                {showGoalModal && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/60 backdrop-blur-sm">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            className="w-full max-w-md bg-[var(--color-bg-primary)] rounded-2xl border border-[var(--color-border)] shadow-2xl overflow-hidden"
+                        >
+                            <div className="flex items-center justify-between p-4 border-b border-[var(--color-border)] bg-[var(--color-bg-elevated)]">
+                                <h3 className="text-lg font-semibold text-[var(--color-text-primary)]">New Savings Goal</h3>
+                                <button onClick={() => setShowGoalModal(false)} className="p-1 rounded-lg hover:bg-white/5 text-[var(--color-text-muted)] transition-colors">
+                                    <X className="w-5 h-5" />
+                                </button>
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                {displayInsights.map((insight, i) => {
-                                    const borderColor = insight.priority === "high"
-                                        ? "border-red-500/20 bg-red-500/5"
-                                        : insight.priority === "medium"
-                                            ? "border-yellow-500/20 bg-yellow-500/5"
-                                            : "border-blue-500/20 bg-blue-500/5";
-                                    return (
-                                        <div key={i} className={cn("p-4 rounded-xl border", borderColor)}>
-                                            <h3 className="text-sm font-semibold text-[var(--color-text-primary)] mb-2">{insight.title}</h3>
-                                            <p className="text-xs text-[var(--color-text-muted)] leading-relaxed">{insight.description}</p>
-                                        </div>
-                                    );
-                                })}
-                            </div>
+
+                            <form onSubmit={handleGoalSubmit} className="p-5 space-y-4">
+                                <div className="space-y-1">
+                                    <label className="text-xs font-medium text-[var(--color-text-secondary)]">Goal Title</label>
+                                    <input
+                                        type="text" required
+                                        value={newGoalForm.title} onChange={e => setNewGoalForm({ ...newGoalForm, title: e.target.value })}
+                                        className="w-full px-3 py-2.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] text-sm text-[var(--color-text-primary)] focus:border-blue-500/50 outline-none"
+                                        placeholder="e.g. Dream Home Downpayment"
+                                    />
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1">
+                                        <label className="text-xs font-medium text-[var(--color-text-secondary)]">Target Amount (₹)</label>
+                                        <input
+                                            type="number" required min="1"
+                                            value={newGoalForm.target_amount} onChange={e => setNewGoalForm({ ...newGoalForm, target_amount: e.target.value })}
+                                            className="w-full px-3 py-2.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] text-sm text-[var(--color-text-primary)] focus:border-blue-500/50 outline-none"
+                                            placeholder="500000"
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-xs font-medium text-[var(--color-text-secondary)]">Target Date</label>
+                                        <input
+                                            type="date"
+                                            value={newGoalForm.deadline} onChange={e => setNewGoalForm({ ...newGoalForm, deadline: e.target.value })}
+                                            className="w-full px-3 py-2.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] text-sm text-[var(--color-text-primary)] focus:border-blue-500/50 outline-none"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-xs font-medium text-[var(--color-text-secondary)]">Category</label>
+                                    <select
+                                        value={newGoalForm.category} onChange={e => setNewGoalForm({ ...newGoalForm, category: e.target.value })}
+                                        className="w-full px-3 py-2.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] text-sm text-[var(--color-text-primary)] focus:border-blue-500/50 outline-none"
+                                    >
+                                        <option value="General">General</option>
+                                        <option value="Housing">Housing</option>
+                                        <option value="Vehicle">Vehicle</option>
+                                        <option value="Education">Education</option>
+                                        <option value="Emergency">Emergency Fund</option>
+                                        <option value="Retirement">Retirement</option>
+                                    </select>
+                                </div>
+                                <div className="pt-2">
+                                    <button
+                                        type="submit" disabled={isSubmittingGoal}
+                                        className="w-full py-2.5 rounded-xl bg-blue-600 text-white font-medium text-sm hover:bg-blue-500 transition-all flex justify-center items-center cursor-pointer"
+                                    >
+                                        {isSubmittingGoal ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : "Save Goal"}
+                                    </button>
+                                </div>
+                            </form>
                         </motion.div>
-                    )}
-                </motion.div>
-            </main>
-        </div>
+                    </div>
+                )}
+            </AnimatePresence>
+        </div >
     );
 }
