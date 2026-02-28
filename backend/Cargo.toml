@@ -1,0 +1,54 @@
+[package]
+name = "ghr-backend"
+version = "0.1.0"
+edition = "2021"
+description = "GHR2.0 — Rust/Axum backend for AI-Powered Financial Advisory"
+
+[dependencies]
+# === Web Framework ===
+axum = { version = "0.7", features = ["macros", "multipart"] }
+axum-extra = { version = "0.9", features = ["cookie"] }
+tokio = { version = "1", features = ["full"] }
+tower = "0.4"
+tower-http = { version = "0.5", features = ["cors", "trace"] }
+
+# === Serialization ===
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# === Database ===
+sqlx = { version = "0.7", features = [
+    "runtime-tokio-rustls",
+    "postgres",
+    "uuid",
+    "chrono",
+    "migrate",
+] }
+
+# === Authentication (WebAuthn) ===
+webauthn-rs = { version = "0.5", features = ["danger-allow-state-serialisation"] }
+webauthn-rs-proto = "0.5"
+# webauthn-rs depends on openssl internally; vendored compiles it from source
+# so Windows/MSVC works without a system OpenSSL install
+openssl = { version = "0.10", features = ["vendored"] }
+
+# === Encryption ===
+aes-gcm = "0.10"
+rand = "0.8"
+base64 = "0.22"
+
+# === HTTP Client (for Ollama) ===
+reqwest = { version = "0.12", default-features = false, features = ["json", "stream", "rustls-tls"] }
+futures = "0.3"
+tokio-stream = "0.1"
+
+# === Utilities ===
+uuid = { version = "1", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+dotenvy = "0.15"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+url = "2"
+hex = "0.4"
+async-stream = "0.3"
+dashmap = "6"

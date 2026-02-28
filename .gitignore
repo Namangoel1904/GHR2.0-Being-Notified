@@ -1,0 +1,16 @@
+# GHR2.0 — AI-Powered Financial Advisory Platform
+node_modules/
+.next/
+target/
+.env
+.env.local
+.env.*.local
+*.log
+*.pdb
+docker/data/
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+.gemini/
+.agent/
