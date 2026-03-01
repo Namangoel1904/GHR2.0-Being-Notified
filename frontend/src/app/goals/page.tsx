@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import useSWR from "swr";
 import {
@@ -12,12 +12,10 @@ import {
     Shield,
     GraduationCap,
     Sparkles,
-    TrendingUp,
-    AlertTriangle,
-    Calendar,
     IndianRupee,
     ChevronRight,
     X,
+    TrendingUp,
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import { cn } from "@/lib/utils";
@@ -111,12 +109,50 @@ function GoalCard({ goal }: { goal: Goal }) {
     const color = goalColors[goal.type];
     const progress = (goal.currentAmount / goal.targetAmount) * 100;
     const remaining = goal.targetAmount - goal.currentAmount;
-    const monthsNeeded = Math.ceil(remaining / goal.monthlyContribution);
+
+    // Dynamically recalculate ETA based on actual remaining balance divided by their original monthly target obligation
+    const monthsNeeded = goal.monthlyContribution > 0 ? Math.ceil(remaining / goal.monthlyContribution) : 0;
+
+    // --- Local Fund State for Card --- //
+    const [fundInput, setFundInput] = useState("");
+    const [isAdding, setIsAdding] = useState(false);
+
+    const handleAddFund = async () => {
+        const amount = Number(fundInput);
+        if (!amount || amount <= 0) {
+            toast.error("Please enter a valid amount");
+            return;
+        }
+
+        setIsAdding(true);
+        try {
+            const res = await fetch(`http://localhost:8080/api/dashboard/goals/${goal.id}/fund`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ amount })
+            });
+            const data = await res.json();
+            if (data.success) {
+                toast.success(`Successfully added ₹${amount.toLocaleString("en-IN")} to ${goal.name}!`);
+                setFundInput("");
+                // We emit an event or rely on parent mutate
+                window.dispatchEvent(new Event('goal_updated'));
+            } else {
+                toast.error(data.error || "Failed to add funds");
+            }
+        } catch (error) {
+            toast.error("Network error");
+        } finally {
+            setIsAdding(false);
+        }
+    };
 
     return (
         <motion.div
-            variants={itemVariants}
-            className="card p-6 hover:border-blue-500/20 transition-all"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+            className="card p-6 border-[var(--color-border)] hover:border-blue-500/20 transition-all flex flex-col"
         >
             <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-3">
@@ -166,20 +202,20 @@ function GoalCard({ goal }: { goal: Goal }) {
             </div>
 
             {/* Details */}
-            <div className="grid grid-cols-3 gap-3 text-center">
-                <div className="p-3 rounded-lg bg-[var(--color-bg-primary)]/40">
-                    <p className="text-xs text-[var(--color-text-dim)]">Monthly</p>
+            <div className="grid grid-cols-3 gap-3 text-center mb-5 flex-grow">
+                <div className="p-3 rounded-lg bg-[var(--color-bg-primary)]/40 flex flex-col justify-center">
+                    <p className="text-xs text-[var(--color-text-dim)]">Monthly Avg</p>
                     <p className="text-sm font-semibold text-[var(--color-text-primary)]">
                         ₹{goal.monthlyContribution.toLocaleString("en-IN")}
                     </p>
                 </div>
-                <div className="p-3 rounded-lg bg-[var(--color-bg-primary)]/40">
+                <div className="p-3 rounded-lg bg-[var(--color-bg-primary)]/40 flex flex-col justify-center">
                     <p className="text-xs text-[var(--color-text-dim)]">Remaining</p>
                     <p className="text-sm font-semibold text-[var(--color-text-primary)]">
                         ₹{remaining.toLocaleString("en-IN")}
                     </p>
                 </div>
-                <div className="p-3 rounded-lg bg-[var(--color-bg-primary)]/40">
+                <div className="p-3 rounded-lg bg-[var(--color-bg-primary)]/40 flex flex-col justify-center">
                     <p className="text-xs text-[var(--color-text-dim)]">ETA</p>
                     <p className="text-sm font-semibold text-[var(--color-text-primary)]">
                         {monthsNeeded}mo
@@ -187,15 +223,32 @@ function GoalCard({ goal }: { goal: Goal }) {
                 </div>
             </div>
 
-            {/* AI Suggestion */}
-            {goal.monthlyContribution < goal.requiredMonthly && (
-                <div className="mt-4 p-3 rounded-lg bg-yellow-500/5 border border-yellow-500/20">
-                    <div className="flex items-center gap-2">
-                        <AlertTriangle className="w-4 h-4 text-yellow-400 flex-shrink-0" />
-                        <p className="text-xs text-yellow-300">
-                            Need ₹{goal.requiredMonthly.toLocaleString("en-IN")}/mo to hit target on time. Increase by ₹{(goal.requiredMonthly - goal.monthlyContribution).toLocaleString("en-IN")}/mo.
-                        </p>
+            {/* Fund Input Area */}
+            {progress < 100 ? (
+                <div className="mt-auto pt-4 border-t border-[var(--color-border)] flex items-center justify-between gap-3">
+                    <div className="relative flex-grow">
+                        <IndianRupee className="w-4 h-4 text-[var(--color-text-dim)] absolute left-3 top-1/2 -translate-y-1/2" />
+                        <input
+                            type="number"
+                            placeholder="Add savings..."
+                            value={fundInput}
+                            onChange={(e) => setFundInput(e.target.value)}
+                            className="w-full pl-9 pr-4 py-2 bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-lg text-sm text-[var(--color-text-primary)] focus:outline-none focus:border-blue-500/50"
+                        />
                     </div>
+                    <button
+                        onClick={handleAddFund}
+                        disabled={isAdding || !fundInput}
+                        className="px-4 py-2 bg-blue-500 hover:bg-blue-600 disabled:opacity-50 disabled:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors flex shrink-0 items-center justify-center min-w-[80px]"
+                    >
+                        {isAdding ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : "Fund It"}
+                    </button>
+                </div>
+            ) : (
+                <div className="mt-auto pt-4 border-t border-[var(--color-border)] text-center">
+                    <p className="text-sm text-green-400 font-medium flex items-center justify-center gap-1.5">
+                        <Sparkles className="w-4 h-4" /> Goal Fully Funded!
+                    </p>
                 </div>
             )}
         </motion.div>
@@ -385,48 +438,61 @@ export default function GoalsPage() {
     const { data: dbData, mutate } = useSWR('http://localhost:8080/api/dashboard/goals', fetcher);
     const [showCreate, setShowCreate] = useState(false);
 
-    // Map backend goals to UI interface
-    let goals: Goal[] = [];
-    if (dbData?.success && dbData.goals?.length > 0) {
-        const validTypes = ["car", "house", "business", "emergency", "education"];
-        goals = dbData.goals.map((bg: any) => {
-            const currentAmount = bg.current_amount || 0;
-            const targetAmount = bg.target_amount || 1; // avoid /0
-            const remaining = Math.max(0, targetAmount - currentAmount);
+    // AI Smart Allocation States
+    const [totalSavingsPool, setTotalSavingsPool] = useState(0);
+    const [allocatedGoals, setAllocatedGoals] = useState<Goal[]>([]);
 
-            // Calc months left based on deadline
-            const d = new Date(bg.deadline || new Date());
-            const months = Math.max(1, (d.getFullYear() - new Date().getFullYear()) * 12 + d.getMonth() - new Date().getMonth());
+    // Map backend goals to UI interface & Auto-Allocate
+    useEffect(() => {
+        // 1. Listen for cross-component funding events
+        const handleUpdate = () => mutate();
+        window.addEventListener('goal_updated', handleUpdate);
+        return () => window.removeEventListener('goal_updated', handleUpdate);
+    }, [mutate]);
 
-            const reqMonthly = Math.ceil(remaining / months);
+    // 2. Map backend goals to UI interface (Manual Logic)
+    const goalsList = useMemo<Goal[]>(() => {
+        if (dbData?.success && dbData.goals && dbData.goals.length > 0) {
+            const validTypes = ["car", "house", "business", "emergency", "education"];
+            return dbData.goals.map((bg: any) => {
+                const targetAmount = bg.target_amount || 1;
+                const currentAmount = bg.current_amount || 0;
+                const remaining = Math.max(0, targetAmount - currentAmount);
 
-            const t = bg.category?.toLowerCase() || "";
-            const mappedType = validTypes.includes(t) ? t as GoalType : "emergency";
+                // Deadlines & required contribution calculation (based on original target)
+                const d = new Date(bg.deadline || new Date());
+                const months = Math.max(1, (d.getFullYear() - new Date().getFullYear()) * 12 + d.getMonth() - new Date().getMonth());
+                const reqMonthly = Math.ceil(targetAmount / months);
 
-            // Randomish but deterministic feasibility based on ratio
-            const ratio = currentAmount / targetAmount;
-            const feasibilityScore = Math.min(98, Math.floor(70 + ratio * 30));
+                const t = bg.category?.toLowerCase() || "";
+                const mappedType = validTypes.includes(t) ? t as GoalType : "emergency";
 
-            return {
-                id: bg.id,
-                type: mappedType,
-                name: bg.title,
-                targetAmount,
-                currentAmount,
-                monthlyContribution: reqMonthly, // simulate user contributing exactly what's req
-                timelineMonths: months,
-                priority: "high",
-                feasibilityScore,
-                requiredMonthly: reqMonthly
-            };
-        });
-    } else if (!dbData || !dbData.success) {
-        goals = initialGoals; // fallback before load or if error
-    }
+                const priority = ["emergency", "education"].includes(mappedType) ? "high" : mappedType === "house" ? "medium" : "low";
 
-    const totalTarget = goals.reduce((s, g) => s + g.targetAmount, 0);
-    const totalSaved = goals.reduce((s, g) => s + g.currentAmount, 0);
-    const totalMonthly = goals.reduce((s, g) => s + g.monthlyContribution, 0);
+                // Feasibility score
+                const ratio = currentAmount / targetAmount;
+                const feasibilityScore = Math.min(98, Math.floor(70 + ratio * 30));
+
+                return {
+                    id: bg.id,
+                    type: mappedType,
+                    name: bg.title,
+                    targetAmount,
+                    currentAmount,
+                    monthlyContribution: reqMonthly,
+                    timelineMonths: months,
+                    priority,
+                    feasibilityScore,
+                    requiredMonthly: reqMonthly
+                };
+            });
+        }
+        return initialGoals.map(g => ({ ...g, currentAmount: 0 }));
+    }, [dbData]);
+
+    const totalTarget = goalsList.reduce((s: number, g: Goal) => s + g.targetAmount, 0);
+    const totalSaved = goalsList.reduce((s: number, g: Goal) => s + g.currentAmount, 0);
+    const totalMonthly = goalsList.reduce((s: number, g: Goal) => s + g.monthlyContribution, 0);
 
     return (
         <div className="min-h-screen">
@@ -491,7 +557,7 @@ export default function GoalsPage() {
 
                     {/* Goal Cards */}
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        {goals.map((goal) => (
+                        {goalsList.map((goal: Goal) => (
                             <GoalCard key={goal.id} goal={goal} />
                         ))}
                     </div>

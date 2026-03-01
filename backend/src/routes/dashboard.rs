@@ -1,5 +1,5 @@
 use axum::{
-    extract::State,
+    extract::{Path, State},
     routing::{get, post},
     Json, Router,
 };
@@ -10,6 +10,11 @@ use uuid::Uuid;
 use crate::models::transaction::CreateTransaction;
 use crate::models::goal::{CreateGoal, Goal};
 use crate::AppState;
+
+#[derive(serde::Deserialize)]
+pub struct FundGoalPayload {
+    amount: f64,
+}
 
 // ─── Spending Analysis Response ─────────────────────────────────────────────
 
@@ -49,6 +54,7 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/alerts", get(get_alerts))
         // Goals
         .route("/goals", get(list_goals).post(create_goal))
+        .route("/goals/:id/fund", post(fund_goal))
 }
 
 // ─── Handlers ───────────────────────────────────────────────────────────────
@@ -260,5 +266,41 @@ async fn create_goal(
             "success": false,
             "error": format!("DB error: {e}")
         })),
+    }
+}
+
+async fn fund_goal(
+    State(state): State<Arc<AppState>>,
+    Path(goal_id): Path<Uuid>,
+    Json(payload): Json<FundGoalPayload>,
+) -> Json<serde_json::Value> {
+    
+    let result = sqlx::query!(
+        "UPDATE goals SET current_amount = current_amount + $1 WHERE id = $2 RETURNING id, current_amount, target_amount",
+        payload.amount,
+        goal_id
+    )
+    .fetch_optional(&state.db)
+    .await;
+
+    match result {
+        Ok(Some(record)) => {
+            // Check if goal just hit its target (could trigger an alert in the future)
+            let _is_completed = record.current_amount >= record.target_amount;
+            
+            Json(serde_json::json!({
+                "success": true,
+                "goal_id": record.id.to_string(),
+                "new_amount": record.current_amount
+            }))
+        },
+        Ok(None) => Json(serde_json::json!({
+            "success": false,
+            "error": "Goal not found"
+        })),
+        Err(e) => Json(serde_json::json!({
+            "success": false,
+            "error": format!("DB error: {e}")
+        }))
     }
 }

@@ -228,8 +228,8 @@ export default function AuthPage() {
                                         onChange={(e) => setDisclaimerAccepted(e.target.checked)}
                                         className="w-4 h-4 rounded border-2 border-[var(--color-border)] bg-transparent checked:bg-blue-500 checked:border-blue-500 focus:ring-blue-500/30 focus:ring-2 transition-all disabled:opacity-40 disabled:cursor-not-allowed accent-blue-500"
                                     />
-                                    <span className="text-sm text-[var(--color-text-muted)]">
-                                        I have read and agree to the{" "}
+                                    <span className="text-sm text-[var(--color-text-muted)] leading-relaxed block mt-0.5">
+                                        I confirm that I have read, understood, and agree to the{" "}
                                         <button
                                             type="button"
                                             onClick={(e) => {
@@ -240,7 +240,11 @@ export default function AuthPage() {
                                             className="text-blue-400 underline underline-offset-2 hover:text-blue-300 transition-colors font-medium"
                                         >
                                             Disclaimer
-                                        </button>
+                                        </button>.
+                                        {/* <br />
+                                        <span className="text-xs text-[var(--color-text-dim)] mt-1 block">
+                                            I acknowledge that this platform provides AI-generated financial insights for educational purposes only and does not constitute investment advice.
+                                        </span> */}
                                     </span>
                                 </label>
                                 {!disclaimerScrolledToBottom && (
@@ -372,101 +376,121 @@ export default function AuthPage() {
                                 className="flex-1 overflow-y-auto px-6 py-5 text-base text-[var(--color-text-secondary)] leading-relaxed space-y-4 scroll-smooth"
                                 style={{ maxHeight: "60vh" }}
                             >
-                                <h3 className="text-blue-400 font-semibold text-base">
-                                    ArthNiti — Terms of Use &amp; Disclaimer
+                                <h3 className="text-blue-400 font-bold text-lg">
+                                    DISCLAIMER
                                 </h3>
 
                                 <p>
-                                    By registering an account with ArthNiti, you acknowledge and agree to the
-                                    following terms. Please read this document carefully before proceeding.
+                                    Welcome to <strong>ArthNiti</strong>. This Legal Disclaimer governs your use of our AI-powered financial guidance platform. By accessing, registering, or using this Platform, you acknowledge that you have read, understood, and agreed to the terms outlined below.
+                                    <br /><br />
+                                    If you do not agree with these terms, please refrain from using the Platform.
                                 </p>
 
-                                <h4 className="text-[var(--color-text-primary)] font-semibold mt-4">
-                                    1. Not Financial Advice
+                                <h4 className="text-[var(--color-text-primary)] font-semibold mt-4 text-sm">
+                                    Educational and Informational Purpose Only
                                 </h4>
                                 <p>
-                                    ArthNiti is an AI-powered financial literacy and budgeting tool designed for
-                                    <strong> educational purposes only</strong>. The insights, suggestions, and analyses
-                                    provided by the platform do not constitute professional financial, investment,
-                                    tax, or legal advice. You should always consult a qualified financial advisor
-                                    before making any financial decisions.
+                                    This Platform provides AI-generated financial guidance for educational and informational purposes only. The content, analysis, forecasts, scores, projections, insights, simulations, and recommendations available through the Platform are designed to improve financial literacy and awareness.
+                                </p>
+                                <p className="mt-2">The Platform does not provide:</p>
+                                <ul className="list-disc pl-5 mt-1 space-y-1">
+                                    <li>Stock or securities recommendations</li>
+                                    <li>Tax advice or Legal advice</li>
+                                    <li>Accounting advice</li>
+                                    <li>Insurance advisory services</li>
+                                </ul>
+                                <p className="mt-2 font-medium text-[var(--color-text-primary)]">Nothing on this Platform constitutes professional advice of any kind.</p>
+                                <p>Users are strongly encouraged to consult certified financial advisors, registered investment advisors, chartered accountants, or other licensed professionals before making any financial decisions.</p>
+
+                                <h4 className="text-[var(--color-text-primary)] font-semibold mt-4 text-sm">
+                                    No Investment Advice Clause
+                                </h4>
+                                <p>
+                                    The Platform does not recommend, endorse, or promote specific financial instruments, securities, or investment products.
+                                </p>
+                                <p className="mt-2">
+                                    References to financial instruments including, but not limited to: Fixed Deposits (FD), Recurring Deposits (RD), Mutual Funds, Stocks, Exchange Traded Funds (ETFs), Bonds, Gold (Physical or Digital), Crypto Assets, and Insurance products are provided solely for general educational awareness.
+                                </p>
+                                <p className="mt-2 text-sm">The Platform does not:</p>
+                                <ul className="list-disc pl-5 mt-1 space-y-1">
+                                    <li>Assess individual suitability under regulatory standards</li>
+                                    <li>Provide buy/sell/hold instructions</li>
+                                    <li>Guarantee returns or capital protection</li>
+                                    <li>Act as a broker, dealer, or investment intermediary</li>
+                                </ul>
+                                <p className="mt-2 font-medium">All financial decisions remain solely at the discretion and responsibility of the user.</p>
+
+                                <h4 className="text-[var(--color-text-primary)] font-semibold mt-4 text-sm">
+                                    AI-Generated Insights &amp; Explainability Notice
+                                </h4>
+                                <p>
+                                    The Platform utilizes artificial intelligence, machine learning models, statistical forecasting systems, and automated categorization tools to generate: Financial health scores, Spending analytics, Budgeting suggestions, Savings optimization strategies, Cash flow forecasts, Goal-based financial projections, and Risk insights.
+                                </p>
+                                <p className="mt-2 text-sm">AI outputs:</p>
+                                <ul className="list-disc pl-5 mt-1 space-y-1">
+                                    <li>Are probabilistic and model-based</li>
+                                    <li>Depend on the accuracy and completeness of input data</li>
+                                    <li>May involve assumptions and estimated categorization</li>
+                                    <li>May produce inaccurate or incomplete results</li>
+                                </ul>
+                                <p className="mt-2">
+                                    The Platform provides explainable reasoning where possible; however, users acknowledge that algorithmic systems are not infallible. <strong>No AI-generated output should be interpreted as definitive financial advice.</strong>
                                 </p>
 
-                                <h4 className="text-[var(--color-text-primary)] font-semibold mt-4">
-                                    2. AI Limitations
+                                <h4 className="text-[var(--color-text-primary)] font-semibold mt-4 text-sm">
+                                    Data Accuracy and User Responsibility
                                 </h4>
                                 <p>
-                                    The AI advisor (powered by DeepSeek-R1) runs locally on your device. While it
-                                    strives to provide helpful insights, the AI may produce inaccurate, incomplete,
-                                    or outdated information. ArthNiti makes no guarantees about the accuracy,
-                                    reliability, or completeness of any AI-generated content. Users should
-                                    independently verify all financial information.
+                                    The Platform relies on: User-provided information, Uploaded documents (e.g., bank statements), Connected financial data sources, Automatically categorized transaction records, and Estimated projections based on historical patterns.
+                                </p>
+                                <p className="mt-2 mb-1">Users are responsible for:</p>
+                                <ul className="list-disc pl-5 space-y-1">
+                                    <li>Verifying the correctness of their financial data</li>
+                                    <li>Reviewing transaction categorizations and confirming projections</li>
+                                    <li>Independently evaluating financial decisions</li>
+                                </ul>
+                                <p className="mt-2 font-medium text-red-400">
+                                    The Platform shall not be liable for any financial loss, damage, or consequence resulting from reliance on inaccurate data.
                                 </p>
 
-                                <h4 className="text-[var(--color-text-primary)] font-semibold mt-4">
-                                    3. Data Privacy &amp; On-Device Processing
+                                <h4 className="text-[var(--color-text-primary)] font-semibold mt-4 text-sm">
+                                    Risk Awareness Statement
                                 </h4>
                                 <p>
-                                    All financial data processing occurs locally on your device. ArthNiti does not
-                                    transmit your financial data to external cloud servers. However, the platform
-                                    stores encrypted data in a local PostgreSQL database. You are responsible for
-                                    the security of your device and local database credentials.
+                                    All financial instruments and financial decisions carry inherent risks, including but not limited to Loss of capital, Market volatility, Liquidity constraints, Regulatory changes, Economic fluctuations, and Inflation risk.
+                                </p>
+                                <p className="mt-2">
+                                    Market-linked instruments such as equities, mutual funds, ETFs, and crypto assets are subject to price fluctuations and may result in partial or total loss of investment. Past performance, statistical modeling, or AI-based forecasts do not guarantee future results.
+                                </p>
+                                <p className="mt-2">Users should carefully assess their financial capacity, risk tolerance, and investment horizon before making any financial commitments.</p>
+
+                                <h4 className="text-[var(--color-text-primary)] font-semibold mt-4 text-sm">
+                                    Data Privacy &amp; Security Commitment
+                                </h4>
+                                <p>
+                                    We process financial data only with explicit user consent, implement encryption and secure storage mechanisms, restrict unauthorized access, and do not sell personal financial data to third parties. Users may revoke access or request deletion of personal data at any time.
+                                </p>
+                                <p className="mt-2">
+                                    Despite security measures, no digital system can guarantee absolute security. Users acknowledge inherent risks associated with online data transmission.
                                 </p>
 
-                                <h4 className="text-[var(--color-text-primary)] font-semibold mt-4">
-                                    4. Passwordless Authentication (WebAuthn/FIDO2)
+                                <h4 className="text-[var(--color-text-primary)] font-semibold mt-4 text-sm">
+                                    Limitation of Liability
                                 </h4>
                                 <p>
-                                    ArthNiti uses FIDO2-compliant passkeys for authentication. Your private keys
-                                    never leave your authenticator device. If you lose access to all registered
-                                    authenticators, you may lose access to your account. ArthNiti is not responsible
-                                    for account recovery in such cases.
+                                    To the fullest extent permitted by applicable law, the Platform, its founders, employees, affiliates, developers, and partners shall not be liable for: Direct or indirect financial losses, Investment losses, Business interruption, Data inaccuracies, Missed financial opportunities, System downtime, or Consequential damages.
+                                </p>
+                                <p className="mt-2 font-medium">Use of the Platform is strictly at the user&apos;s own risk.</p>
+
+                                <h4 className="text-[var(--color-text-primary)] font-semibold mt-4 text-sm">
+                                    Ethical AI Compliance Statement
+                                </h4>
+                                <p>
+                                    The Platform is designed in alignment with responsible AI principles. We aim to promote transparency in automated decision-making, provide explainable financial insights, avoid misleading outputs, reduce algorithm bias, and maintain compliance. AI-generated outputs are intended to assist financial literacy, not replace human professional judgment.
                                 </p>
 
-                                <h4 className="text-[var(--color-text-primary)] font-semibold mt-4">
-                                    5. Risk Profile Assessment
-                                </h4>
-                                <p>
-                                    The risk profiling quiz provides a simplified assessment of your financial risk
-                                    tolerance. This assessment is based on general models and may not accurately
-                                    reflect your actual risk tolerance or financial situation. Do not rely solely on
-                                    this assessment for investment decisions.
-                                </p>
-
-                                <h4 className="text-[var(--color-text-primary)] font-semibold mt-4">
-                                    6. No Liability
-                                </h4>
-                                <p>
-                                    ArthNiti, its developers, and contributors shall not be held liable for any
-                                    financial losses, damages, or consequences arising from the use of this platform.
-                                    Use ArthNiti at your own risk. The platform is provided &ldquo;as is&rdquo; without
-                                    warranty of any kind, either express or implied.
-                                </p>
-
-                                <h4 className="text-[var(--color-text-primary)] font-semibold mt-4">
-                                    7. Encryption &amp; Security
-                                </h4>
-                                <p>
-                                    Financial data is encrypted using AES-256-GCM at rest. While this provides
-                                    strong encryption, no system is 100% secure. Users should follow best security
-                                    practices including keeping their operating system and software up to date.
-                                </p>
-
-                                <h4 className="text-[var(--color-text-primary)] font-semibold mt-4">
-                                    8. Experimental / Hackathon Project
-                                </h4>
-                                <p>
-                                    ArthNiti is a prototype/hackathon project and is not intended for production
-                                    use with real financial data. Use mock or test data only. The software has not
-                                    undergone a formal security audit.
-                                </p>
-
-                                <h4 className="text-[var(--color-text-primary)] font-semibold mt-4">
-                                    9. Changes to Terms
-                                </h4>
-                                <p>
-                                    These terms may be updated at any time without prior notice. Continued use of
-                                    the platform constitutes acceptance of any modified terms.
+                                <p className="mt-6 italic text-xs text-[var(--color-text-dim)]">
+                                    We reserve the right to update, modify, or revise this Disclaimer at any time without prior notice. Continued use of the Platform following updates constitutes acceptance of the revised terms.
                                 </p>
 
                                 {/* Scroll anchor — the user must reach this */}

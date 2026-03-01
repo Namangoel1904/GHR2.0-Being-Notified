@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
     PieChart,
@@ -33,6 +34,7 @@ import {
     RefreshCw,
     Award,
     X,
+    LineChart as LineChartIcon
 } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 import Navbar from "@/components/Navbar";
@@ -376,6 +378,18 @@ export default function DashboardPage() {
     // Goals UI mapping
     const goals = realGoals.length > 0 ? realGoals : [];
 
+    // Simulator Mini Data
+    const miniProjectionData = Array.from({ length: 6 }, (_, i) => {
+        const base = 50000;
+        const currentAdd = netSavings > 0 ? netSavings : 0;
+        const optimizedAdd = currentAdd + (totalIncome * 0.15); // AI optimizes ~15% more
+        return {
+            month: `M${i + 1}`,
+            current: base + (i * currentAdd),
+            optimized: base + (i * optimizedAdd)
+        };
+    });
+
     // Fire toast on high-severity alerts
     useEffect(() => {
         const highAlerts = alerts.filter((a) => a.severity === "high");
@@ -622,21 +636,57 @@ export default function DashboardPage() {
                         </motion.div>
                     </div>
 
-                    {/* Bar Chart */}
-                    <motion.div variants={itemVariants} className="card p-6">
-                        <h2 className="text-lg font-semibold text-[var(--color-text-primary)] mb-6">Category Breakdown</h2>
-                        <ResponsiveContainer width="100%" height={220}>
-                            <BarChart data={chartData}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
-                                <XAxis dataKey="category" stroke="var(--color-text-dim)" tick={{ fill: "var(--color-text-muted)", fontSize: 11 }} />
-                                <YAxis stroke="var(--color-text-dim)" tick={{ fill: "var(--color-text-muted)", fontSize: 11 }} tickFormatter={(v) => `₹${v}`} />
-                                <Tooltip content={<CustomTooltip />} />
-                                <Bar dataKey="total" radius={[6, 6, 0, 0]} name="Spending">
-                                    {chartData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
-                                </Bar>
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </motion.div>
+                    {/* Bar Chart & Simulator Panel */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <motion.div variants={itemVariants} className="card p-6">
+                            <h2 className="text-lg font-semibold text-[var(--color-text-primary)] mb-6">Category Breakdown</h2>
+                            <ResponsiveContainer width="100%" height={220}>
+                                <BarChart data={chartData}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
+                                    <XAxis dataKey="category" stroke="var(--color-text-dim)" tick={{ fill: "var(--color-text-muted)", fontSize: 11 }} />
+                                    <YAxis stroke="var(--color-text-dim)" tick={{ fill: "var(--color-text-muted)", fontSize: 11 }} tickFormatter={(v) => `₹${v}`} />
+                                    <Tooltip content={<CustomTooltip />} />
+                                    <Bar dataKey="total" radius={[6, 6, 0, 0]} name="Spending">
+                                        {chartData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                                    </Bar>
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </motion.div>
+
+                        <motion.div variants={itemVariants} className="card p-6 border-blue-500/20 relative overflow-hidden flex flex-col justify-between">
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-bl-[100px] -z-10" />
+                            <div>
+                                <div className="flex items-center gap-2 mb-2">
+                                    <LineChartIcon className="w-5 h-5 text-blue-400" />
+                                    <h2 className="text-lg font-bold text-[var(--color-text-primary)]">AI Financial Future Forecast</h2>
+                                </div>
+                                <p className="text-sm text-[var(--color-text-muted)] mb-4">6-Month Trajectory Simulator</p>
+
+                                <div className="h-[150px] w-full mb-4">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <AreaChart data={miniProjectionData} margin={{ top: 10, right: 0, left: 10, bottom: 0 }}>
+                                            <YAxis hide domain={['dataMin', 'dataMax']} />
+                                            <Area
+                                                type="monotone" dataKey="optimized" stroke="#06b6d4" fill="transparent"
+                                                strokeWidth={3} strokeDasharray="5 5" name="AI Optimized"
+                                            />
+                                            <Area
+                                                type="monotone" dataKey="current" stroke="#3b82f6" fillOpacity={0.1} fill="#3b82f6"
+                                                strokeWidth={3} name="Current Path"
+                                            />
+                                        </AreaChart>
+                                    </ResponsiveContainer>
+                                </div>
+                                <div className="flex justify-between items-center text-xs px-2 mb-4">
+                                    <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-blue-500" /> <span className="text-[var(--color-text-muted)]">Current</span></div>
+                                    <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full border border-cyan-500 bg-transparent" /> <span className="text-cyan-400">AI Optimized</span></div>
+                                </div>
+                            </div>
+                            <Link href="/simulator" className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-blue-600/10 text-blue-400 hover:bg-blue-600/20 border border-blue-500/20 font-semibold text-sm transition-colors cursor-pointer">
+                                Open Simulator <ArrowUpRight className="w-4 h-4" />
+                            </Link>
+                        </motion.div>
+                    </div>
 
 
                 </motion.div >

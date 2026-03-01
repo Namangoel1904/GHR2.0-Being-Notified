@@ -19,7 +19,8 @@ import {
     Bitcoin,
     Home,
     Video,
-    GraduationCap
+    GraduationCap,
+    X
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import { cn } from "@/lib/utils";
@@ -35,6 +36,7 @@ interface Instrument {
     points: string[];
     bestFor: string;
     icon: any;
+    laymanExplanation: string;
 }
 
 const instruments: Instrument[] = [
@@ -44,7 +46,8 @@ const instruments: Instrument[] = [
         risk: "Safe",
         points: ["Your regular bank account.", "Deposit and withdraw money anytime.", "Gives very low interest.", "Highly liquid."],
         bestFor: "Emergency money and daily transactions.",
-        icon: PiggyBank
+        icon: PiggyBank,
+        laymanExplanation: "Think of this as a digital wallet where your money sleeps safely. It won't grow much, but it's always ready when you need to buy groceries or pay a bill."
     },
     {
         id: "fixed-deposit",
@@ -52,7 +55,8 @@ const instruments: Instrument[] = [
         risk: "Safe",
         points: ["Deposit money for a fixed time (1 yr, 3 yrs, etc).", "Bank gives fixed, predictable interest.", "Money is locked for the period."],
         bestFor: "Safe and predictable returns.",
-        icon: Landmark
+        icon: Landmark,
+        laymanExplanation: "You lock your money inside a bank vault for a specific time. In return for leaving it alone, the bank pays you a guaranteed, steady reward."
     },
     {
         id: "recurring-deposit",
@@ -60,7 +64,8 @@ const instruments: Instrument[] = [
         risk: "Safe",
         points: ["Deposit a fixed amount every month.", "Fixed interest rate mapping an FD.", "Helps build a strict savings habit."],
         bestFor: "Small monthly savings.",
-        icon: Briefcase
+        icon: Briefcase,
+        laymanExplanation: "Like a piggy bank you're forced to feed every month. It builds discipline and adds a bit of interest, making it great for saving up for a phone or a trip."
     },
     {
         id: "ppf",
@@ -68,7 +73,8 @@ const instruments: Instrument[] = [
         risk: "Safe",
         points: ["Long-term savings scheme backed by the government.", "Requires a 15-year lock-in period.", "Excellent tax benefits under 80C."],
         bestFor: "Long-term safe savings & retirement.",
-        icon: ShieldCheck
+        icon: ShieldCheck,
+        laymanExplanation: "A super-safe government vault for your retirement. You lock the money away for 15 years, and in return, you get completely tax-free guaranteed growth."
     },
     {
         id: "bonds",
@@ -76,7 +82,8 @@ const instruments: Instrument[] = [
         risk: "Moderate",
         points: ["Lending money to a company or government.", "You earn fixed interest payouts over time.", "Usually safer than stocks."],
         bestFor: "Medium-term predictable income.",
-        icon: Building2
+        icon: Building2,
+        laymanExplanation: "You act like the bank! You lend your money to a big company or the government, and they promise to pay you regular interest until they return your original cash."
     },
     {
         id: "debt-mutual-funds",
@@ -84,7 +91,8 @@ const instruments: Instrument[] = [
         risk: "Moderate",
         points: ["Funds that invest in bonds and fixed-income.", "Moderate returns with higher liquidity than FDs.", "Lower risk than stock market, but not completely risk-free."],
         bestFor: "Medium-term goals.",
-        icon: Coins
+        icon: Coins,
+        laymanExplanation: "A basket of safe loans. Experts take your money and lend it to reliable companies. It grows faster than a bank deposit but stays much safer than the stock market."
     },
     {
         id: "gold",
@@ -92,7 +100,8 @@ const instruments: Instrument[] = [
         risk: "Moderate",
         points: ["Physical coins, jewelry, or Digital Gold (SGBs).", "Protects purchasing power against inflation.", "Prices fluctuate based on global demand."],
         bestFor: "Diversification and long-term holding.",
-        icon: Gem
+        icon: Gem,
+        laymanExplanation: "The traditional safety net. It doesn't pay regular interest, but it protects the value of your money over decades when the prices of everyday goods skyrocket."
     },
     {
         id: "equity-mutual-funds",
@@ -100,7 +109,8 @@ const instruments: Instrument[] = [
         risk: "High",
         points: ["Funds that invest directly in stock markets.", "Higher return potential but value changes daily.", "Professionally managed by fund managers."],
         bestFor: "Wealth creation over time (5+ years).",
-        icon: TrendingUp
+        icon: TrendingUp,
+        laymanExplanation: "A basket of different company shares managed by an expert. You own a tiny slice of many businesses, so if the stock market grows, your money grows with it."
     },
     {
         id: "etfs",
@@ -108,7 +118,8 @@ const instruments: Instrument[] = [
         risk: "High",
         points: ["Similar to mutual funds but traded actively like stocks.", "Market-linked and highly diversified.", "Low expense ratios compared to mutual funds."],
         bestFor: "Investors who want flexibility and low fees.",
-        icon: LineChart
+        icon: LineChart,
+        laymanExplanation: "Very similar to Equity Mutual Funds, but traded instantly like normal shares. They simply follow the overall market with very low maintenance fees."
     },
     {
         id: "direct-stocks",
@@ -116,7 +127,8 @@ const instruments: Instrument[] = [
         risk: "High",
         points: ["You buy direct ownership via shares in a company.", "Highest return potential but very volatile.", "Requires deep fundamental knowledge and monitoring."],
         bestFor: "Experienced, active investors.",
-        icon: TrendingUp
+        icon: TrendingUp,
+        laymanExplanation: "You buy a literal piece of a company (like Apple or Tata). If the company does well, you get richer. If it fails, you lose your money. High risk, high reward."
     },
     {
         id: "crypto",
@@ -124,7 +136,8 @@ const instruments: Instrument[] = [
         risk: "Extremely High",
         points: ["Digital decentralized assets like Bitcoin.", "Extremely volatile price swings.", "Severe regulatory uncertainty in many regions."],
         bestFor: "High-risk investors only (money you can afford to lose).",
-        icon: Bitcoin
+        icon: Bitcoin,
+        laymanExplanation: "Highly experimental digital money that lives on the internet. It can make you wealthy overnight or crash to zero. Only put in what you are completely okay with losing."
     },
     {
         id: "real-estate",
@@ -132,7 +145,8 @@ const instruments: Instrument[] = [
         risk: "Moderate",
         points: ["Buying property like apartments, land, or commercial spaces.", "Earn through capital value appreciation.", "Cash flow generation via rental yield."],
         bestFor: "Tangible asset creation and passive rental income.",
-        icon: Home
+        icon: Home,
+        laymanExplanation: "Buying actual physical properties. You can live in it, rent it out for a monthly salary, or wait 10 years and sell it for a bigger profit. Requires a huge starting amount."
     }
 ];
 
@@ -154,7 +168,7 @@ const courses: Course[] = [
     {
         id: "health-score",
         title: "1. What Is a Financial Health Score and Why Should You Care?",
-        videoUrl: "https://www.youtube.com/embed/46WFDd_-Vzk",
+        videoUrl: "https://www.youtube-nocookie.com/embed/WiH2T933xn8",
         points: [
             {
                 lines: [
@@ -175,7 +189,7 @@ const courses: Course[] = [
     {
         id: "start-saving",
         title: "2. How to Start Saving Money (Even If Your Income Is Small)",
-        videoUrl: "https://www.youtube.com/embed/Y8vYc4V9J2E",
+        videoUrl: "https://www.youtube-nocookie.com/embed/VeD5uAHf30A",
         points: [
             {
                 lines: [
@@ -197,7 +211,7 @@ const courses: Course[] = [
     {
         id: "track-spending",
         title: "3. Where Does My Money Go? Understanding Spending",
-        videoUrl: "https://www.youtube.com/embed/KjYfGz1b7Y8",
+        videoUrl: "https://www.youtube-nocookie.com/embed/KCMtwBT4wj0",
         points: [
             {
                 lines: [
@@ -219,7 +233,7 @@ const courses: Course[] = [
     {
         id: "emergency-fund",
         title: "4. Why An Emergency Fund Saves You From Stress",
-        videoUrl: "https://www.youtube.com/embed/U9mXv5zE8WQ",
+        videoUrl: "https://www.youtube-nocookie.com/embed/nj1sjbSGoH0",
         points: [
             {
                 lines: [
@@ -240,7 +254,7 @@ const courses: Course[] = [
     {
         id: "fd-mf-gold",
         title: "5. Fixed Deposit vs Mutual Fund vs Gold",
-        videoUrl: "https://www.youtube.com/embed/7e8kY0m2Y6Q",
+        videoUrl: "https://www.youtube-nocookie.com/embed/_Zk31GLXFUs",
         points: [
             {
                 subtitle: "Fixed Deposit (FD):",
@@ -259,7 +273,7 @@ const courses: Course[] = [
     {
         id: "how-much-save",
         title: "6. How Much Should You Actually Save Every Month?",
-        videoUrl: "https://www.youtube.com/embed/9tKc5n6k3Q4",
+        videoUrl: "https://www.youtube-nocookie.com/embed/rAYB4RpqHQA",
         points: [
             {
                 lines: [
@@ -286,7 +300,7 @@ const courses: Course[] = [
     {
         id: "lost-job",
         title: "7. What Happens If You Lose Your Job? Staying Safe",
-        videoUrl: "https://www.youtube.com/embed/5ZkP2Y9vH4E",
+        videoUrl: "https://www.youtube-nocookie.com/embed/htq7Z9f-W2I",
         points: [
             {
                 lines: ["Planning heavily in advance heavily reduces the physiological panic of sudden income loss."]
@@ -305,7 +319,7 @@ const courses: Course[] = [
     {
         id: "money-mistakes",
         title: "8. Common Money Mistakes Ruining Your Savings",
-        videoUrl: "https://www.youtube.com/embed/J7h3F2kLm5Y",
+        videoUrl: "https://www.youtube-nocookie.com/embed/6Tqf0x-ludM",
         points: [
             {
                 lines: ["Small miscalculations repeated daily/monthly compound into catastrophic losses yearly."]
@@ -325,7 +339,7 @@ const courses: Course[] = [
     {
         id: "reducing-expenses",
         title: "9. How to Reduce Expenses Without Feeling Trapped",
-        videoUrl: "https://www.youtube.com/embed/8jFhL4qX6JY",
+        videoUrl: "https://www.youtube-nocookie.com/embed/Qz7B1XpZ73M",
         points: [
             {
                 lines: [
@@ -348,7 +362,7 @@ const courses: Course[] = [
     {
         id: "ai-finance",
         title: "10. How AI Can Supercharge Your Financial Future",
-        videoUrl: "https://www.youtube.com/embed/H6f4k8dR9K0",
+        videoUrl: "https://www.youtube-nocookie.com/embed/G-N57s6c66s",
         points: [
             {
                 lines: ["AI acts as a tireless, ultra-rational calculator that works 24/7 for you."]
@@ -372,6 +386,7 @@ const courses: Course[] = [
 export default function LiteracyPage() {
     const [activeTab, setActiveTab] = useState<"instruments" | "courses">("instruments");
     const [expandedCourse, setExpandedCourse] = useState<string | null>(null);
+    const [selectedInstrument, setSelectedInstrument] = useState<Instrument | null>(null);
 
     return (
         <div className="min-h-screen">
@@ -453,7 +468,8 @@ export default function LiteracyPage() {
                                         initial={{ opacity: 0, y: 15 }}
                                         animate={{ opacity: 1, y: 0 }}
                                         transition={{ delay: i * 0.05 }}
-                                        className="card p-5 group hover:border-[var(--color-border-hover)] transition-all flex flex-col h-full"
+                                        onClick={() => setSelectedInstrument(inst)}
+                                        className="card p-5 group hover:border-[var(--color-border-hover)] cursor-pointer transition-all flex flex-col h-full"
                                     >
                                         <div className="flex items-start justify-between mb-4">
                                             <div className="w-10 h-10 rounded-xl bg-[var(--color-bg-primary)] flex items-center justify-center border border-[var(--color-border)] group-hover:scale-110 transition-transform">
@@ -576,6 +592,74 @@ export default function LiteracyPage() {
                     </motion.div>
                 )}
             </main>
+
+            {/* Modal for Layered Layman Explanations */}
+            <AnimatePresence>
+                {selectedInstrument && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        onClick={() => setSelectedInstrument(null)}
+                        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+                    >
+                        <motion.div
+                            initial={{ scale: 0.95, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.95, opacity: 0 }}
+                            onClick={(e) => e.stopPropagation()}
+                            className="bg-[var(--color-bg-primary)] border border-[var(--color-border)] p-6 md:p-8 rounded-2xl max-w-lg w-full shadow-2xl relative overflow-hidden"
+                        >
+                            {/* Decorative Grid Background */}
+                            <div className="absolute inset-0 bg-grid opacity-10 pointer-events-none" />
+
+                            <button
+                                onClick={() => setSelectedInstrument(null)}
+                                className="absolute top-4 right-4 p-2 rounded-full bg-[var(--color-bg-elevated)] hover:bg-[var(--color-border)] transition-colors z-10"
+                            >
+                                <X className="w-4 h-4 text-[var(--color-text-dim)]" />
+                            </button>
+
+                            <div className="flex items-center gap-4 mb-5 relative z-10">
+                                <div className="w-14 h-14 rounded-xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20 shadow-inner">
+                                    <selectedInstrument.icon className="w-7 h-7 text-blue-400" />
+                                </div>
+                                <div>
+                                    <h3 className="text-xl md:text-2xl font-bold text-[var(--color-text-primary)]">{selectedInstrument.name}</h3>
+                                    <span className={cn("text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border mt-1.5 inline-block shadow-sm", riskColors[selectedInstrument.risk])}>
+                                        {selectedInstrument.risk}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div className="bg-gradient-to-br from-blue-500/10 to-indigo-500/5 border border-blue-500/20 rounded-xl p-5 mb-6 shadow-sm relative z-10">
+                                <p className="text-sm md:text-base text-[var(--color-text-primary)] leading-relaxed font-semibold">
+                                    "{selectedInstrument.laymanExplanation}"
+                                </p>
+                            </div>
+
+                            <div className="space-y-5 relative z-10">
+                                <div>
+                                    <h4 className="text-[10px] font-bold text-[var(--color-text-dim)] uppercase tracking-widest mb-3">Key Characteristics</h4>
+                                    <ul className="text-sm text-[var(--color-text-muted)] space-y-2">
+                                        {selectedInstrument.points.map((pt, idx) => (
+                                            <li key={idx} className="flex items-start gap-2.5">
+                                                <span className="text-blue-500 mt-1 flex-shrink-0">•</span>
+                                                <span className="leading-relaxed">{pt}</span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                                <div className="pt-4 border-t border-[var(--color-border)]">
+                                    <h4 className="text-[10px] font-bold text-[var(--color-text-dim)] uppercase tracking-widest mb-1.5">When Should You Use This?</h4>
+                                    <p className="text-sm text-[var(--color-text-primary)] font-medium"><span className="text-blue-400 mr-1.5 text-lg leading-none">↳</span>{selectedInstrument.bestFor}</p>
+                                </div>
+                            </div>
+
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }
