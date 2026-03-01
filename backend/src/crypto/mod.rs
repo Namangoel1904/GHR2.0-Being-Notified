@@ -58,6 +58,18 @@ pub fn decrypt(key: &[u8], encrypted_b64: &str) -> Result<String, String> {
     String::from_utf8(plaintext).map_err(|e| e.to_string())
 }
 
+/// Hashes a given User ID UUID into a deterministic 32-byte array suitable for AES-256-GCM.
+pub fn derive_user_key(user_id: &uuid::Uuid) -> [u8; 32] {
+    use sha2::{Sha256, Digest};
+    let mut hasher = Sha256::new();
+    hasher.update(user_id.to_string().as_bytes());
+    let result = hasher.finalize();
+    
+    let mut key = [0u8; 32];
+    key.copy_from_slice(&result);
+    key
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

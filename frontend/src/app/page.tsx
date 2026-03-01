@@ -116,12 +116,12 @@ export default function LandingPage() {
                 Start Now — It&apos;s Free
                 <ArrowRight className="w-5 h-5" />
               </Link>
-              <Link
+              {/* <Link
                 href="/dashboard"
                 className="px-8 py-4 rounded-2xl border border-[var(--color-border)] text-[var(--color-text-secondary)] font-medium text-lg hover:border-blue-500/30 hover:bg-[var(--color-bg-card)] transition-all"
               >
                 View Demo
-              </Link>
+              </Link> */}
             </div>
           </motion.div>
         </div>
@@ -163,7 +163,7 @@ export default function LandingPage() {
       </section>
 
       {/* Security Banner */}
-      <section className="relative z-10 px-4 pb-20">
+      {/* <section className="relative z-10 px-4 pb-20">
         <div className="mx-auto max-w-3xl text-center">
           <div className="glass-strong rounded-3xl p-10 glow-blue">
             <Sparkles className="w-8 h-8 text-blue-400 mx-auto mb-4" />
@@ -188,7 +188,7 @@ export default function LandingPage() {
             </div>
           </div>
         </div>
-      </section>
+      </section> */}
     </div>
   );
 }

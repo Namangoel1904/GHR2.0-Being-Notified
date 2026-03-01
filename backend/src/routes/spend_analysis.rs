@@ -10,7 +10,6 @@ use uuid::Uuid;
 use bytes::Bytes;
 
 use crate::{
-    db,
     models::transaction::Transaction,
     AppState,
 };
@@ -30,6 +29,7 @@ pub struct SpendDataResponse {
     pub recent_transactions: Vec<Transaction>,
     pub category_spending: std::collections::HashMap<String, f64>,
     pub has_gmail_connected: bool,
+    pub user_seed: String,
 }
 
 pub async fn get_spend_data(
@@ -46,7 +46,7 @@ pub async fn get_spend_data(
     // Fetch all transactions for user
     let txs_db = match sqlx::query!(
         r#"
-        SELECT id, user_id, amount_encrypted, description_encrypted, category, transaction_date, is_flagged, created_at
+        SELECT id, user_id, amount_encrypted, description_encrypted, merchant_encrypted, category, transaction_date, is_flagged, created_at
         FROM transactions
         ORDER BY transaction_date DESC
         "#
@@ -73,7 +73,7 @@ pub async fn get_spend_data(
             Ok(s) => s,
             Err(_) => continue,
         };
-        let desc_str = match crypto::decrypt(&state.encryption_key, &record.description_encrypted) {
+        let _desc_str = match crypto::decrypt(&state.encryption_key, &record.description_encrypted) {
             Ok(s) => s,
             Err(_) => continue,
         };
@@ -89,8 +89,9 @@ pub async fn get_spend_data(
         recent_transactions.push(Transaction {
             id: record.id,
             user_id: record.user_id,
-            amount_encrypted: amount_str, // Pass cleartext to frontend in this field for now
-            description_encrypted: desc_str, // Pass cleartext to frontend
+            amount_encrypted: amount_str, 
+            description_encrypted: record.description_encrypted, 
+            merchant_encrypted: record.merchant_encrypted,
             category: record.category,
             transaction_date: record.transaction_date,
             is_flagged: record.is_flagged,
@@ -106,6 +107,7 @@ pub async fn get_spend_data(
             recent_transactions,
             category_spending,
             has_gmail_connected,
+            user_seed: sqlx::query!("SELECT id FROM users LIMIT 1").fetch_optional(&state.db).await.unwrap_or(None).map(|r| r.id.to_string()).unwrap_or_default(),
         })
     ).into_response()
 }
@@ -114,6 +116,7 @@ pub async fn get_spend_data(
 pub struct ManualTransactionReq {
     pub amount: f64,
     pub description: String,
+    pub merchant: Option<String>,
     pub category: String,
     pub payment_mode: String,
     pub date: String,
@@ -145,10 +148,21 @@ pub async fn add_manual_transaction(
         }
     };
 
-    let desc_encrypted = match crypto::encrypt(&state.encryption_key, &formatted_desc) {
+    let user_crypto_key = crypto::derive_user_key(&user_id);
+
+    let desc_encrypted = match crypto::encrypt(&user_crypto_key, &formatted_desc) {
         Ok(enc) => enc,
         Err(e) => {
             tracing::error!("Failed to encrypt description: {}", e);
+            return (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"success": false, "message": "Encryption error"}))).into_response();
+        }
+    };
+
+    let merchant_name = payload.merchant.clone().unwrap_or_else(|| "Manual Entry".to_string());
+    let merchant_encrypted = match crypto::encrypt(&user_crypto_key, &merchant_name) {
+        Ok(enc) => enc,
+        Err(e) => {
+            tracing::error!("Failed to encrypt merchant: {}", e);
             return (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"success": false, "message": "Encryption error"}))).into_response();
         }
     };
@@ -161,13 +175,14 @@ pub async fn add_manual_transaction(
 
     let res = sqlx::query!(
         r#"
-        INSERT INTO transactions (id, user_id, amount_encrypted, description_encrypted, category, transaction_date)
-        VALUES ($1, $2, $3, $4, $5, $6)
+        INSERT INTO transactions (id, user_id, amount_encrypted, description_encrypted, merchant_encrypted, category, transaction_date)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
         "#,
         tx_id,
         user_id,
         amount_encrypted,
         desc_encrypted,
+        merchant_encrypted,
         payload.category,
         parsed_date
     )
@@ -196,6 +211,7 @@ pub async fn upload_statement(
     State(state): State<Arc<AppState>>,
     mut multipart: Multipart,
 ) -> impl IntoResponse {
+    use crate::crypto;
     let mut file_content: Option<Bytes> = None;
     let mut file_name: Option<String> = None;
     let mut content_type: Option<String> = None;
@@ -439,6 +455,8 @@ RULES:
     struct ParsedTx {
         date: String,
         description: String,
+        #[serde(default)]
+        merchant: String,
         amount: f64,
         category: String,
     }
@@ -527,7 +545,7 @@ RULES:
 pub async fn gmail_sync(
     State(state): State<Arc<AppState>>,
 ) -> impl IntoResponse {
-    tracing::info!("Starting automated Gmail sync...");
+    use crate::crypto;
 
     // 1. Fetch user with a google_refresh_token
     let profile = match sqlx::query!("SELECT user_id, google_refresh_token FROM user_profiles WHERE google_refresh_token IS NOT NULL LIMIT 1")
@@ -637,7 +655,7 @@ pub async fn gmail_sync(
     }
 
     let messages = messages.unwrap();
-    let mut all_raw_extracted_text = String::new();
+    let mut all_raw_extracted_text = zeroize::Zeroizing::new(String::new());
 
     // 4. Extract text out of the API responses
     for msg in messages {
@@ -702,12 +720,14 @@ Output format MUST be exactly this (no markdown, no extra text):
   {
     "date": "YYYY-MM-DD",
     "description": "Short clean description (e.g., 'Amazon', 'Electricity Bill')",
+    "merchant": "Name of the business, brand, or person (e.g., 'Starbucks', 'John Doe')",
     "amount": -50.25,
     "category": "Food & Dining"
   }
 ]
 
 RULES:
+- Extract financial data ONLY. If you see an account number or a home address, replace it with [REDACTED]. Do not return anything except the structured JSON.
 - Use negative numbers for expenses/debits.
 - Use positive numbers for income/credits.
 - Guess the best category: "Food & Dining", "Transport", "Shopping", "Bills & Utilities", "Entertainment", "Health/Medical", "Income", "Others".
@@ -719,7 +739,7 @@ RULES:
         "model": state.ollama_model,
         "messages": [
             { "role": "system", "content": system_prompt },
-            { "role": "user", "content": format!("Extract transactions from this email text:\n\n{}", all_raw_extracted_text) }
+            { "role": "user", "content": format!("Extract transactions from this email text:\n\n{}", all_raw_extracted_text.as_str()) }
         ],
         "stream": false,
         "options": {
@@ -787,6 +807,8 @@ RULES:
     struct ParsedTx {
         date: String,
         description: String,
+        #[serde(default)]
+        merchant: String,
         amount: f64,
         category: String,
     }
@@ -807,42 +829,49 @@ RULES:
     let user_id = profile.user_id;
     let mut success_count = 0;
 
+    let mut inserted_count = 0;
+    let user_crypto_key = crypto::derive_user_key(&user_id);
+
+    // Save transactions directly to the DB
     for tx in parsed_txs {
-        use crate::crypto;
+        let amount_encrypted = match crypto::encrypt(&state.encryption_key, &tx.amount.to_string()) {
+            Ok(enc) => enc,
+            Err(_) => continue, 
+        };
 
-        let amount_str = tx.amount.to_string();
-        let amount_enc = match crypto::encrypt(&state.encryption_key, &amount_str) {
-            Ok(e) => e,
+        let desc_encrypted = match crypto::encrypt(&user_crypto_key, &tx.description) {
+            Ok(enc) => enc,
             Err(_) => continue,
         };
 
-        let desc_enc = match crypto::encrypt(&state.encryption_key, &tx.description) {
-            Ok(e) => e,
+        let merchant_encrypted = match crypto::encrypt(&user_crypto_key, &tx.merchant) {
+            Ok(enc) => enc,
             Err(_) => continue,
         };
 
-        let tx_date = chrono::NaiveDate::parse_from_str(&tx.date, "%Y-%m-%d")
-            .map(|d| d.and_hms_opt(0, 0, 0).unwrap().and_utc())
+        let parsed_date = chrono::DateTime::parse_from_rfc3339(&format!("{}T00:00:00Z", tx.date))
+            .map(|dt| dt.with_timezone(&chrono::Utc))
             .unwrap_or_else(|_| chrono::Utc::now());
 
         let tx_id = Uuid::new_v4();
-        
-        let insert_res = sqlx::query!(
+
+        let res = sqlx::query!(
             r#"
-            INSERT INTO transactions (id, user_id, amount_encrypted, description_encrypted, category, transaction_date)
-            VALUES ($1, $2, $3, $4, $5, $6)
+            INSERT INTO transactions (id, user_id, amount_encrypted, description_encrypted, merchant_encrypted, category, transaction_date)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
             "#,
             tx_id,
             user_id,
-            amount_enc,
-            desc_enc,
+            amount_encrypted,
+            desc_encrypted,
+            merchant_encrypted,
             tx.category,
-            tx_date
+            parsed_date
         )
         .execute(&state.db)
         .await;
 
-        if insert_res.is_ok() {
+        if res.is_ok() {
             success_count += 1;
         }
     }

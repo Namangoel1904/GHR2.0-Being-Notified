@@ -1,0 +1,1 @@
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS merchant_encrypted TEXT NOT NULL DEFAULT '';

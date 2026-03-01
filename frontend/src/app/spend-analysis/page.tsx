@@ -51,6 +51,7 @@ interface Transaction {
     id: string;
     amount_encrypted: string;
     description_encrypted: string;
+    merchant_encrypted: string;
     category: string;
     transaction_date: string;
 }
@@ -61,6 +62,7 @@ interface SpendDataResponse {
     recent_transactions: Transaction[];
     category_spending: Record<string, number>;
     has_gmail_connected?: boolean;
+    user_seed: string;
 }
 
 // ─── Mock Data ──────────────────────────────────────────────────────────────
@@ -112,6 +114,61 @@ const itemVariants = {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0 },
 };
+
+// ─── Decryption Utility ─────────────────────────────────────────────────────
+
+/**
+ * Derives a 32-byte AES key using SHA-256 hashes of the userSeed (UUID),
+ * matching the Rust `derive_user_key` logic exactly. 
+ * Converts base64 back to Uint8Array, extracts the 12-byte nonce, 
+ * and decrypts using AES-GCM.
+ */
+async function decryptAESGCM(b64Ciphertext: string | undefined, userSeed: string | undefined): Promise<string> {
+    if (!b64Ciphertext || !userSeed) return b64Ciphertext || "Unknown";
+
+    try {
+        const enc = new TextEncoder();
+
+        // 1. Derive 32-byte key via SHA-256
+        const keyMaterial = await window.crypto.subtle.digest(
+            "SHA-256",
+            enc.encode(userSeed)
+        );
+
+        // 2. Import raw key
+        const key = await window.crypto.subtle.importKey(
+            "raw",
+            keyMaterial,
+            { name: "AES-GCM" },
+            false,
+            ["decrypt"]
+        );
+
+        // 3. Decode base64 
+        const binaryString = atob(b64Ciphertext);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+        }
+
+        // 4. Split nonce (first 12 bytes) and ciphertext
+        if (bytes.length < 12) return "Ciphertext too short";
+        const nonce = bytes.slice(0, 12);
+        const ciphertext = bytes.slice(12);
+
+        // 5. Decrypt
+        const decryptedBuf = await window.crypto.subtle.decrypt(
+            { name: "AES-GCM", iv: nonce },
+            key,
+            ciphertext
+        );
+
+        return new TextDecoder().decode(decryptedBuf);
+    } catch (e) {
+        console.error("Local decryption failed:", e);
+        return "*** Encrypted Data ***";
+    }
+}
 
 // ─── Main Page ──────────────────────────────────────────────────────────────
 
@@ -213,6 +270,44 @@ export default function SpendAnalysisPage() {
         fetcher,
         { refreshInterval: 0 } // Manual refresh after upload
     );
+
+    // Zero-Knowledge Decryption State
+    const [decryptedTransactions, setDecryptedTransactions] = useState<any[]>([]);
+    const [isDecrypting, setIsDecrypting] = useState(false);
+
+    useEffect(() => {
+        if (!spendData?.recent_transactions || !spendData?.user_seed) return;
+
+        let isMounted = true;
+        setIsDecrypting(true);
+
+        const decryptAll = async () => {
+            const decTx = await Promise.all(
+                spendData.recent_transactions.map(async (tx) => {
+                    const decryptedDesc = await decryptAESGCM(tx.description_encrypted, spendData.user_seed);
+                    // Provide a default empty string for merchant to avoid type errors dynamically while resolving
+                    const decryptedMerchant = tx.merchant_encrypted ? await decryptAESGCM(tx.merchant_encrypted, spendData.user_seed) : "";
+
+                    return {
+                        id: tx.id,
+                        category: tx.category,
+                        amount: parseFloat(tx.amount_encrypted) || 0, // In this iteration amount is still not AES encrypted locally to UI
+                        date: new Date(tx.transaction_date).toLocaleDateString("en-IN", { month: "short", day: "numeric" }),
+                        desc: decryptedDesc,
+                        merchant: decryptedMerchant,
+                    }
+                })
+            );
+
+            if (isMounted) {
+                setDecryptedTransactions(decTx);
+                setIsDecrypting(false);
+            }
+        };
+
+        decryptAll();
+        return () => { isMounted = false; };
+    }, [spendData]);
 
     const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
@@ -316,15 +411,7 @@ export default function SpendAnalysisPage() {
     });
 
     const displayCategories = dynamicCategoryData.length > 0 ? dynamicCategoryData : categoryData;
-    const displayTransactions = spendData?.recent_transactions && spendData.recent_transactions.length > 0
-        ? spendData.recent_transactions.map(tx => ({
-            id: tx.id,
-            desc: tx.description_encrypted,
-            category: tx.category,
-            amount: parseFloat(tx.amount_encrypted),
-            date: new Date(tx.transaction_date).toLocaleDateString("en-IN", { month: "short", day: "numeric" })
-        }))
-        : recentTransactions;
+    const displayTransactions = decryptedTransactions.length > 0 ? decryptedTransactions : recentTransactions;
 
     const dynamicSubscriptions = displayTransactions
         .filter(tx => tx.category === "Subscriptions")
@@ -724,7 +811,10 @@ export default function SpendAnalysisPage() {
                                         </div>
                                         <div>
                                             <p className="text-sm font-medium text-[var(--color-text-primary)]">{tx.desc}</p>
-                                            <p className="text-xs text-[var(--color-text-dim)]">{tx.category} · {tx.date}</p>
+                                            <p className="text-xs text-[var(--color-text-dim)]">
+                                                {tx.merchant && <span className="text-[var(--color-text-muted)] font-medium">{tx.merchant} • </span>}
+                                                {tx.category} • {tx.date}
+                                            </p>
                                         </div>
                                     </div>
                                     <span className={cn("text-sm font-semibold", tx.amount > 0 ? "text-blue-400" : "text-red-400")}>

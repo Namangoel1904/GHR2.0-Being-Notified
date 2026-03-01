@@ -9,6 +9,7 @@ pub struct Transaction {
     pub user_id: Uuid,
     pub amount_encrypted: String,         // AES-256-GCM encrypted
     pub description_encrypted: String,    // AES-256-GCM encrypted
+    pub merchant_encrypted: String,       // AES-256-GCM encrypted via User Key
     pub category: String,
     pub transaction_date: DateTime<Utc>,
     pub is_flagged: bool,
@@ -19,6 +20,7 @@ pub struct Transaction {
 pub struct CreateTransaction {
     pub amount: f64,
     pub description: String,
+    pub merchant: Option<String>,
     pub category: String,
     pub transaction_date: Option<String>,
 }
@@ -28,6 +30,7 @@ pub struct TransactionResponse {
     pub id: Uuid,
     pub amount: f64,
     pub description: String,
+    pub merchant: String,
     pub category: String,
     pub transaction_date: DateTime<Utc>,
     pub is_flagged: bool,
