@@ -61,7 +61,7 @@ export default function LandingPage() {
               <Shield className="w-5 h-5 text-blue-400" />
             </div>
             <span className="text-xl font-bold tracking-tight">
-              <span className="text-gradient">Fin</span>Aegis
+              <span className="text-gradient">Arth</span>Niti
             </span>
           </div>
           <Link

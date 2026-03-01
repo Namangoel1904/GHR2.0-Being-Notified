@@ -116,7 +116,7 @@ function StatCard({
 
 const severityStyles = {
     low: "border-blue-500/20 bg-blue-500/5 text-blue-300",
-    medium: "border-yellow-500/20 bg-yellow-500/5 text-yellow-300",
+    medium: "border-yellow-500/20 bg-yellow-500/5 text-blue-900",
     high: "border-red-500/20 bg-red-500/5 text-red-300",
 };
 
@@ -365,9 +365,7 @@ export default function DashboardPage() {
     if (debtStatus >= 2) {
         alerts.push({ id: "debt", message: `Debt: ${debtLabels[debtStatus]}. Prioritize clearing high-interest EMIs.`, severity: debtStatus >= 3 ? "high" : "medium" });
     }
-    if (emergencyFund <= 1) {
-        alerts.push({ id: "emergency", message: `Emergency fund: ${emergencyLabels[emergencyFund]}. Aim for 3-6 months of expenses.`, severity: "high" });
-    }
+
     if (savingsPercent < 20 && totalIncome > 0) {
         alerts.push({ id: "savings_low", message: `Savings rate is ${savingsPercent}% — 50-30-20 rule recommends ≥ 20%.`, severity: savingsPercent < 10 ? "high" : "medium" });
     }
