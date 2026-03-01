@@ -25,6 +25,7 @@ export default function AuthPage() {
     const [mode, setMode] = useState<AuthMode>("login");
     const [step, setStep] = useState<AuthStep>("idle");
     const [username, setUsername] = useState("");
+    const [email, setEmail] = useState("");
     const [displayName, setDisplayName] = useState("");
     const [message, setMessage] = useState("");
     const [supportsWebAuthn, setSupportsWebAuthn] = useState(true);
@@ -55,6 +56,12 @@ export default function AuthPage() {
     const handleAuth = useCallback(async () => {
         if (!username.trim()) {
             setMessage("Please enter your username");
+            setStep("error");
+            return;
+        }
+
+        if (!email.trim() || !email.includes("@")) {
+            setMessage("Please enter a valid email address");
             setStep("error");
             return;
         }
@@ -186,6 +193,20 @@ export default function AuthPage() {
                             />
                         </div>
 
+                        <div>
+                            <label className="block text-xs font-medium text-[var(--color-text-muted)] mb-2 uppercase tracking-wider">
+                                Email Address
+                            </label>
+                            <input
+                                type="email"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                placeholder="Enter your email"
+                                disabled={step === "prompting"}
+                                className="w-full px-4 py-3 rounded-xl bg-[var(--color-bg-primary)]/80 border border-[var(--color-border)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-dim)] focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 transition-all disabled:opacity-50"
+                            />
+                        </div>
+
                         <AnimatePresence>
                             {mode === "register" && (
                                 <motion.div
@@ -193,18 +214,21 @@ export default function AuthPage() {
                                     animate={{ height: "auto", opacity: 1 }}
                                     exit={{ height: 0, opacity: 0 }}
                                     transition={{ duration: 0.2 }}
+                                    className="space-y-4"
                                 >
-                                    <label className="block text-xs font-medium text-[var(--color-text-muted)] mb-2 uppercase tracking-wider">
-                                        Display Name
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={displayName}
-                                        onChange={(e) => setDisplayName(e.target.value)}
-                                        placeholder="Your display name"
-                                        disabled={step === "prompting"}
-                                        className="w-full px-4 py-3 rounded-xl bg-[var(--color-bg-primary)]/80 border border-[var(--color-border)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-dim)] focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 transition-all disabled:opacity-50"
-                                    />
+                                    <div>
+                                        <label className="block text-xs font-medium text-[var(--color-text-muted)] mb-2 uppercase tracking-wider">
+                                            Display Name
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={displayName}
+                                            onChange={(e) => setDisplayName(e.target.value)}
+                                            placeholder="Your display name"
+                                            disabled={step === "prompting"}
+                                            className="w-full px-4 py-3 rounded-xl bg-[var(--color-bg-primary)]/80 border border-[var(--color-border)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-dim)] focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 transition-all disabled:opacity-50"
+                                        />
+                                    </div>
                                 </motion.div>
                             )}
                         </AnimatePresence>

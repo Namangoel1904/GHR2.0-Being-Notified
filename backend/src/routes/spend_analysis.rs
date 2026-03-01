@@ -1,6 +1,6 @@
 use axum::{
     extract::{Multipart, State},
-    http::StatusCode,
+    http::{HeaderMap, StatusCode},
     response::IntoResponse,
     routing::{get, post},
     Json, Router,
@@ -34,10 +34,16 @@ pub struct SpendDataResponse {
 
 pub async fn get_spend_data(
     State(state): State<Arc<AppState>>,
-    // TODO: Add auth extractor
+    headers: HeaderMap,
 ) -> impl IntoResponse {
+    let user_id_str = headers.get("x-user-id").and_then(|v| v.to_str().ok()).unwrap_or("");
+    let user_id = match Uuid::parse_str(user_id_str) {
+        Ok(uid) => uid,
+        Err(_) => return (StatusCode::UNAUTHORIZED, Json(serde_json::json!({"success": false, "message": "Unauthorized"}))).into_response(),
+    };
+
     // Check if the current user has a connected Gmail account
-    let has_gmail_connected = sqlx::query!("SELECT google_refresh_token FROM user_profiles WHERE google_refresh_token IS NOT NULL LIMIT 1")
+    let has_gmail_connected = sqlx::query!("SELECT google_refresh_token FROM user_profiles WHERE user_id = $1 AND google_refresh_token IS NOT NULL LIMIT 1", user_id)
         .fetch_optional(&state.db)
         .await
         .unwrap_or(None)
@@ -48,8 +54,10 @@ pub async fn get_spend_data(
         r#"
         SELECT id, user_id, amount_encrypted, description_encrypted, merchant_encrypted, category, transaction_date, is_flagged, created_at
         FROM transactions
+        WHERE user_id = $1
         ORDER BY transaction_date DESC
-        "#
+        "#,
+        user_id
     )
     .fetch_all(&state.db)
     .await {
@@ -107,7 +115,7 @@ pub async fn get_spend_data(
             recent_transactions,
             category_spending,
             has_gmail_connected,
-            user_seed: sqlx::query!("SELECT id FROM users LIMIT 1").fetch_optional(&state.db).await.unwrap_or(None).map(|r| r.id.to_string()).unwrap_or_default(),
+            user_seed: user_id.to_string(),
         })
     ).into_response()
 }
@@ -124,18 +132,15 @@ pub struct ManualTransactionReq {
 
 pub async fn add_manual_transaction(
     State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
     Json(payload): Json<ManualTransactionReq>,
 ) -> impl IntoResponse {
     use crate::crypto;
 
-    // Safely extract the mock user ID to prevent PostgreSQL foreign key constraint violations
-    let user_id = match sqlx::query!("SELECT id FROM users LIMIT 1").fetch_optional(&state.db).await {
-        Ok(Some(r)) => r.id,
-        _ => {
-            let uid = Uuid::new_v4();
-            let _ = sqlx::query!("INSERT INTO users (id, username, display_name) VALUES ($1, $2, $3)", uid, format!("test_{}", uid), "Test User").execute(&state.db).await;
-            uid
-        }
+    let user_id_str = headers.get("x-user-id").and_then(|v| v.to_str().ok()).unwrap_or("");
+    let user_id = match Uuid::parse_str(user_id_str) {
+        Ok(uid) => uid,
+        Err(_) => return (StatusCode::UNAUTHORIZED, Json(serde_json::json!({"success": false, "message": "Unauthorized"}))).into_response(),
     };
 
     let formatted_desc = format!("[{}] {}", payload.payment_mode, payload.description);
@@ -544,11 +549,18 @@ RULES:
 
 pub async fn gmail_sync(
     State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
 ) -> impl IntoResponse {
     use crate::crypto;
 
+    let user_id_str = headers.get("x-user-id").and_then(|v| v.to_str().ok()).unwrap_or("");
+    let user_id = match Uuid::parse_str(user_id_str) {
+        Ok(uid) => uid,
+        Err(_) => return (StatusCode::UNAUTHORIZED, Json(serde_json::json!({"success": false, "message": "Unauthorized"}))).into_response(),
+    };
+
     // 1. Fetch user with a google_refresh_token
-    let profile = match sqlx::query!("SELECT user_id, google_refresh_token FROM user_profiles WHERE google_refresh_token IS NOT NULL LIMIT 1")
+    let profile = match sqlx::query!("SELECT user_id, google_refresh_token FROM user_profiles WHERE user_id = $1 AND google_refresh_token IS NOT NULL", user_id)
         .fetch_optional(&state.db)
         .await
     {

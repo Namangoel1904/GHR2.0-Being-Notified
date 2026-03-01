@@ -292,6 +292,7 @@ async fn main() {
             header::CONTENT_TYPE,
             header::AUTHORIZATION,
             header::ACCEPT,
+            header::HeaderName::from_static("x-user-id"),
         ])
         .allow_credentials(true);
 

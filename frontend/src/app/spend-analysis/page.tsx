@@ -43,7 +43,7 @@ import Navbar from "@/components/Navbar";
 import { cn } from "@/lib/utils";
 import useSWR from "swr";
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
+import { fetcher } from "@/hooks/useFinancialData";
 
 // ─── Interfaces ─────────────────────────────────────────────────────────────
 
@@ -228,8 +228,7 @@ export default function SpendAnalysisPage() {
         setUploadError("");
         setUploadSuccess("");
         try {
-            const res = await fetch("http://localhost:8080/api/spend-analysis/gmail-sync");
-            const data = await res.json();
+            const data: any = await fetcher("http://localhost:8080/api/spend-analysis/gmail-sync");
             if (data.success) {
                 setUploadSuccess(data.message);
                 mutate(); // Refresh transactions

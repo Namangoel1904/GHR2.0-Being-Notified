@@ -20,8 +20,7 @@ import {
 import Navbar from "@/components/Navbar";
 import { cn } from "@/lib/utils";
 import toast, { Toaster } from "react-hot-toast";
-
-const fetcher = (url: string) => fetch(url).then(r => r.json());
+import { fetcher } from "@/hooks/useFinancialData";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -56,46 +55,7 @@ const goalColors: Record<GoalType, string> = {
     education: "#ec4899",
 };
 
-// ─── Mock Goals ─────────────────────────────────────────────────────────────
-
-const initialGoals: Goal[] = [
-    {
-        id: "1",
-        type: "emergency",
-        name: "Emergency Fund",
-        targetAmount: 300000,
-        currentAmount: 210000,
-        monthlyContribution: 8000,
-        timelineMonths: 12,
-        priority: "high",
-        feasibilityScore: 92,
-        requiredMonthly: 7500,
-    },
-    {
-        id: "2",
-        type: "car",
-        name: "Car Down Payment",
-        targetAmount: 500000,
-        currentAmount: 85000,
-        monthlyContribution: 12000,
-        timelineMonths: 36,
-        priority: "medium",
-        feasibilityScore: 78,
-        requiredMonthly: 11528,
-    },
-    {
-        id: "3",
-        type: "education",
-        name: "MS Course Fund",
-        targetAmount: 1500000,
-        currentAmount: 200000,
-        monthlyContribution: 15000,
-        timelineMonths: 60,
-        priority: "medium",
-        feasibilityScore: 65,
-        requiredMonthly: 21667,
-    },
-];
+// ─── Animations ─────────────────────────────────────────────────────────────
 
 const itemVariants = {
     hidden: { opacity: 0, y: 20 },
@@ -126,9 +86,13 @@ function GoalCard({ goal }: { goal: Goal }) {
 
         setIsAdding(true);
         try {
+            const userId = localStorage.getItem("user_id") || "";
             const res = await fetch(`http://localhost:8080/api/dashboard/goals/${goal.id}/fund`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: {
+                    "Content-Type": "application/json",
+                    "x-user-id": userId
+                },
                 body: JSON.stringify({ amount })
             });
             const data = await res.json();
@@ -288,9 +252,13 @@ function CreateGoalModal({ onClose, onSuccess }: { onClose: () => void, onSucces
                 category: goalType
             };
 
+            const userId = localStorage.getItem("user_id") || "";
             const response = await fetch("http://localhost:8080/api/dashboard/goals", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: {
+                    "Content-Type": "application/json",
+                    "x-user-id": userId
+                },
                 body: JSON.stringify(payload),
             });
             const result = await response.json();
@@ -435,7 +403,7 @@ function CreateGoalModal({ onClose, onSuccess }: { onClose: () => void, onSucces
 // ─── Main Page ──────────────────────────────────────────────────────────────
 
 export default function GoalsPage() {
-    const { data: dbData, mutate } = useSWR('http://localhost:8080/api/dashboard/goals', fetcher);
+    const { data: dbData, mutate } = useSWR<{ success: boolean; goals: any[] }>('http://localhost:8080/api/dashboard/goals', fetcher);
     const [showCreate, setShowCreate] = useState(false);
 
     // AI Smart Allocation States
@@ -487,7 +455,7 @@ export default function GoalsPage() {
                 };
             });
         }
-        return initialGoals.map(g => ({ ...g, currentAmount: 0 }));
+        return [];
     }, [dbData]);
 
     const totalTarget = goalsList.reduce((s: number, g: Goal) => s + g.targetAmount, 0);

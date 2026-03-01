@@ -3,10 +3,20 @@ import { API_BASE } from "@/lib/utils";
 
 // ─── Generic Fetcher ────────────────────────────────────────────────────────
 
-async function fetcher<T>(url: string): Promise<T> {
+export async function fetcher<T>(url: string): Promise<T> {
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+
+    // Inject the user_id context to backend API routes
+    if (typeof window !== "undefined") {
+        const userId = localStorage.getItem("user_id");
+        if (userId) {
+            headers["x-user-id"] = userId;
+        }
+    }
+
     const res = await fetch(url, {
         credentials: "include",
-        headers: { "Content-Type": "application/json" },
+        headers,
     });
     if (!res.ok) throw new Error(`API ${res.status}: ${await res.text()}`);
     return res.json();
@@ -139,13 +149,7 @@ export function useGoals() {
         fetcher,
         {
             revalidateOnFocus: false,
-            fallbackData: {
-                goals: [
-                    { id: "g1", title: "Emergency Fund", target_amount: 150000, current_amount: 120000, category: "Safety Net" },
-                    { id: "g2", title: "Vacation Fund", target_amount: 80000, current_amount: 32000, category: "Lifestyle" },
-                    { id: "g3", title: "New Laptop", target_amount: 100000, current_amount: 65000, category: "Purchase" },
-                ],
-            },
+            fallbackData: { goals: [] },
         }
     );
 

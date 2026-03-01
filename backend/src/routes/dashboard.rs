@@ -1,5 +1,6 @@
 use axum::{
     extract::{Path, State},
+    http::HeaderMap,
     routing::{get, post},
     Json, Router,
 };
@@ -190,15 +191,12 @@ async fn get_alerts(
 
 async fn list_goals(
     State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
 ) -> Json<serde_json::Value> {
-    // Safely extract the mock user ID
-    let user_id = match sqlx::query!("SELECT id FROM users LIMIT 1").fetch_optional(&state.db).await {
-        Ok(Some(r)) => r.id,
-        _ => {
-            let uid = Uuid::new_v4();
-            let _ = sqlx::query!("INSERT INTO users (id, username, display_name) VALUES ($1, $2, $3)", uid, format!("test_{}", uid), "Test User").execute(&state.db).await;
-            uid
-        }
+    let user_id_str = headers.get("x-user-id").and_then(|v| v.to_str().ok()).unwrap_or("");
+    let user_id = match Uuid::parse_str(user_id_str) {
+        Ok(uid) => uid,
+        Err(_) => return Json(serde_json::json!({"success": false, "error": "Unauthorized: Invalid or missing x-user-id header"})),
     };
 
     let goals = match sqlx::query_as!(
@@ -221,18 +219,15 @@ async fn list_goals(
 
 async fn create_goal(
     State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
     Json(payload): Json<CreateGoal>,
 ) -> Json<serde_json::Value> {
     let id = Uuid::new_v4();
 
-    // Safely extract the mock user ID to prevent PostgreSQL foreign key constraint violations
-    let user_id = match sqlx::query!("SELECT id FROM users LIMIT 1").fetch_optional(&state.db).await {
-        Ok(Some(r)) => r.id,
-        _ => {
-            let uid = Uuid::new_v4();
-            let _ = sqlx::query!("INSERT INTO users (id, username, display_name) VALUES ($1, $2, $3)", uid, format!("test_{}", uid), "Test User").execute(&state.db).await;
-            uid
-        }
+    let user_id_str = headers.get("x-user-id").and_then(|v| v.to_str().ok()).unwrap_or("");
+    let user_id = match Uuid::parse_str(user_id_str) {
+        Ok(uid) => uid,
+        Err(_) => return Json(serde_json::json!({"success": false, "error": "Unauthorized: Invalid or missing x-user-id header"})),
     };
 
     let parsed_deadline = if let Some(dl) = payload.deadline {
