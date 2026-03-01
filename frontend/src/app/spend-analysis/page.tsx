@@ -60,6 +60,7 @@ interface SpendDataResponse {
     total_spend: number;
     recent_transactions: Transaction[];
     category_spending: Record<string, number>;
+    has_gmail_connected?: boolean;
 }
 
 // ─── Mock Data ──────────────────────────────────────────────────────────────
@@ -140,6 +141,60 @@ export default function SpendAnalysisPage() {
         } catch (e) {
             console.error("Failed to parse onboarding profile for budget", e);
         }
+    }, []);
+
+    const [isSyncingGmail, setIsSyncingGmail] = useState(false);
+
+    // OAuth Popup Handler
+    useEffect(() => {
+        // Only run on the client
+        if (typeof window === "undefined") return;
+
+        const params = new URLSearchParams(window.location.search);
+        if (params.get("google_sync") === "success") {
+            // If this is a popup window
+            if (window.opener && window.opener !== window) {
+                // Post message to the main window to trigger a refresh/notification
+                window.opener.postMessage({ type: "OAUTH_SUCCESS" }, "*");
+                // Close the popup
+                window.close();
+            } else {
+                // If it opened in the same tab somehow, clean the URL
+                window.history.replaceState({}, document.title, window.location.pathname);
+                triggerGmailSync();
+            }
+        }
+    }, []);
+
+    const triggerGmailSync = async () => {
+        setIsSyncingGmail(true);
+        setUploadError("");
+        setUploadSuccess("");
+        try {
+            const res = await fetch("http://localhost:8080/api/spend-analysis/gmail-sync");
+            const data = await res.json();
+            if (data.success) {
+                setUploadSuccess(data.message);
+                mutate(); // Refresh transactions
+            } else {
+                setUploadError(data.message || "Failed to sync Gmail statements.");
+            }
+        } catch (e) {
+            setUploadError("Network error while syncing Gmail.");
+        } finally {
+            setIsSyncingGmail(false);
+        }
+    };
+
+    // Listen for OAuth success from popup
+    useEffect(() => {
+        const handleMessage = (event: MessageEvent) => {
+            if (event.data?.type === "OAUTH_SUCCESS") {
+                triggerGmailSync();
+            }
+        };
+        window.addEventListener("message", handleMessage);
+        return () => window.removeEventListener("message", handleMessage);
     }, []);
 
     // Manual Entry State
@@ -337,20 +392,69 @@ export default function SpendAnalysisPage() {
                             AI-powered expense tracking & anomaly detection
                         </p>
                     </div>
-                    <div className="flex items-center gap-3">
-                        <button
-                            onClick={() => setShowUpload(!showUpload)}
-                            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-medium hover:bg-blue-500 transition-all shadow-lg shadow-blue-500/20"
-                        >
-                            <Upload className="w-4 h-4" /> Import Statement
-                        </button>
-                        <button
-                            onClick={() => setShowManualEntry(true)}
-                            className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-[var(--color-border)] text-[var(--color-text-muted)] text-sm hover:border-blue-500/30 transition-all">
-                            <Plus className="w-4 h-4" /> Manual Entry
-                        </button>
+                    <div className="flex flex-col items-end">
+                        <div className="flex items-center gap-3">
+                            <button
+                                onClick={() => setShowUpload(!showUpload)}
+                                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-medium hover:bg-blue-500 transition-all shadow-lg shadow-blue-500/20"
+                            >
+                                <Upload className="w-4 h-4" /> Import Statement
+                            </button>
+
+                            {/* Only show Connect Gmail if it evaluates to false or undefined */}
+                            {!spendData?.has_gmail_connected && (
+                                <button
+                                    onClick={() => {
+                                        fetch("http://localhost:8080/api/auth/google/url")
+                                            .then(res => res.json())
+                                            .then(data => {
+                                                if (data.url) {
+                                                    const w = 500;
+                                                    const h = 600;
+                                                    const left = window.screen.width / 2 - w / 2;
+                                                    const top = window.screen.height / 2 - h / 2;
+                                                    window.open(data.url, "GoogleAuth", `width=${w},height=${h},top=${top},left=${left}`);
+                                                }
+                                            });
+                                    }}
+                                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white text-slate-900 font-medium hover:bg-slate-50 transition-all border border-slate-200 shadow-sm dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700 dark:hover:bg-slate-700"
+                                >
+                                    <svg className="w-4 h-4" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" /><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" /><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" /><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" /></svg>
+                                    Connect Gmail
+                                </button>
+                            )}
+
+                            <button
+                                onClick={() => setShowManualEntry(true)}
+                                className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-[var(--color-border)] text-[var(--color-text-muted)] text-sm hover:border-blue-500/30 transition-all">
+                                {/* Note: Assuming Plus is imported from lucide-react in the file. Will confirm imports later if missing. */}
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                                Manual Entry
+                            </button>
+                        </div>
+                        <div className="flex flex-col items-end mt-2">
+                            <p className="text-[10px] text-[var(--color-text-muted)] max-w-sm text-right opacity-80">
+                                🔒 <strong>Privacy Assurance:</strong> ArthNiti requests 'Read-Only' access. Raw emails are processed locally and never stored.
+                            </p>
+                            <p className="text-[10px] text-orange-500/80 max-w-sm text-right mt-1">
+                                <em>OAuth Error Tip:</em> If you see "invalid_client", it's an OAuth Configuration Mismatch. Please check the Redirect URI in the Google Cloud Console to exactly match: <code>http://localhost:8080/api/auth/google/callback</code>
+                            </p>
+                        </div>
                     </div>
                 </motion.div>
+
+                {uploadError && (
+                    <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-sm text-red-400 flex items-center gap-2">
+                        <AlertTriangle className="w-5 h-5" />
+                        {uploadError}
+                    </div>
+                )}
+                {uploadSuccess && (
+                    <div className="mb-6 p-4 bg-green-500/10 border border-green-500/20 rounded-xl text-sm text-green-400 flex items-center gap-3 shadow-lg shadow-green-500/5">
+                        <div className="w-2.5 h-2.5 rounded-full bg-green-400 animate-pulse" />
+                        <span className="font-medium">{uploadSuccess}</span>
+                    </div>
+                )}
 
                 {/* Upload Panel */}
                 <AnimatePresence>
@@ -391,19 +495,6 @@ export default function SpendAnalysisPage() {
                                     disabled={isUploading}
                                 />
                             </label>
-
-                            {uploadError && (
-                                <div className="mt-3 p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-sm text-red-400 flex items-center gap-2">
-                                    <AlertTriangle className="w-4 h-4" />
-                                    {uploadError}
-                                </div>
-                            )}
-                            {uploadSuccess && (
-                                <div className="mt-3 p-3 bg-green-500/10 border border-green-500/20 rounded-xl text-sm text-green-400 flex items-center gap-2">
-                                    <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-                                    {uploadSuccess}
-                                </div>
-                            )}
                         </motion.div>
                     )}
                 </AnimatePresence>
@@ -671,6 +762,74 @@ export default function SpendAnalysisPage() {
                         </div>
                     </motion.div>
                 )}
+
+                {/* Mail Analysis Section */}
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-8 card p-6 border-blue-500/20 bg-gradient-to-br from-[var(--color-bg-card)] to-blue-500/5">
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-blue-500/10 rounded-lg text-blue-400 shadow-inner">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"></rect><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path></svg>
+                            </div>
+                            <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">Recent Email Analysis</h2>
+                        </div>
+                        {isSyncingGmail && (
+                            <span className="text-xs font-medium text-blue-400 flex items-center gap-2">
+                                <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                                AI is scanning recent emails...
+                            </span>
+                        )}
+                    </div>
+                    {isSyncingGmail ? (
+                        <div className="p-8 text-center text-[var(--color-text-muted)] border border-dashed border-[var(--color-border)] rounded-xl bg-[var(--color-bg-elevated)] overflow-hidden relative">
+                            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-blue-500 to-transparent animate-pulse"></div>
+                            <div className="text-4xl mb-4 animate-bounce">🤖</div>
+                            <p className="font-medium text-[var(--color-text-primary)]">DeepSeek is reading your recent inbox...</p>
+                            <p className="text-sm mt-1 text-slate-400">Extracting unstructured transaction data securely.</p>
+                        </div>
+                    ) : spendData?.has_gmail_connected ? (
+                        <div className="p-6 flex flex-col items-center text-center border mt-2 border-dashed border-[var(--color-border)] rounded-xl bg-[var(--color-bg-elevated)]">
+                            <p className="text-sm font-medium text-[var(--color-text-muted)] mb-4">
+                                Gmail connected successfully! Auto-sync is active.
+                            </p>
+                            <div className="flex items-center gap-3">
+                                <button
+                                    onClick={triggerGmailSync}
+                                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600/10 text-blue-500 font-medium hover:bg-blue-600/20 transition-all border border-blue-500/20"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 2v6h-6"></path><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 2v6h6"></path><path d="M21 12a9 9 0 1 0-9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"></path></svg>
+                                    Sync Recent Emails Now
+                                </button>
+                                <button
+                                    onClick={async () => {
+                                        try {
+                                            const res = await fetch("http://localhost:8080/api/auth/google/disconnect", {
+                                                method: "POST"
+                                            });
+                                            const data = await res.json();
+                                            if (data.success) {
+                                                mutate(); // Refresh transactions and connection state
+                                            } else {
+                                                alert(data.message || "Failed to disconnect Gmail.");
+                                            }
+                                        } catch (e) {
+                                            alert("Network error while disconnecting.");
+                                        }
+                                    }}
+                                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-500/10 text-red-500 font-medium hover:bg-red-500/20 transition-all border border-red-500/20"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path><line x1="12" y1="2" x2="12" y2="12"></line></svg>
+                                    Disconnect
+                                </button>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="p-6 text-center border mt-2 border-dashed border-[var(--color-border)] rounded-xl bg-[var(--color-bg-elevated)]">
+                            <p className="text-sm font-medium text-[var(--color-text-muted)]">
+                                Link your Gmail to securely scan for automatic bank statement and receipt parsing.
+                            </p>
+                        </div>
+                    )}
+                </motion.div>
                 <AnimatePresence>
                     {showManualEntry && (
                         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">

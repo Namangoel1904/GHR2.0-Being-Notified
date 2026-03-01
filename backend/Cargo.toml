@@ -36,6 +36,8 @@ openssl = { version = "0.10", features = ["vendored"] }
 aes-gcm = "0.10"
 rand = "0.8"
 base64 = "0.22"
+# === Authentication & OAuth ===
+oauth2 = "4.4"
 
 # === HTTP Client (for Ollama) ===
 reqwest = { version = "0.12", default-features = false, features = ["json", "stream", "rustls-tls", "multipart"] }
