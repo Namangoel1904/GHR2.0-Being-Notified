@@ -322,6 +322,9 @@ export default function SpendAnalysisPage() {
         try {
             const response = await fetch("http://localhost:8080/api/spend-analysis/upload", {
                 method: "POST",
+                headers: {
+                    "x-user-id": localStorage.getItem("user_id") || "",
+                },
                 body: formData,
             });
 
@@ -351,7 +354,10 @@ export default function SpendAnalysisPage() {
             };
             const response = await fetch("http://localhost:8080/api/spend-analysis/manual", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: {
+                    "Content-Type": "application/json",
+                    "x-user-id": localStorage.getItem("user_id") || "",
+                },
                 body: JSON.stringify(payload),
             });
             const result = await response.json();
@@ -491,7 +497,7 @@ export default function SpendAnalysisPage() {
                             {!spendData?.has_gmail_connected && (
                                 <button
                                     onClick={() => {
-                                        fetch("http://localhost:8080/api/auth/google/url")
+                                        fetch("http://localhost:8080/api/auth/google/url?user_id=" + (localStorage.getItem("user_id") || ""))
                                             .then(res => res.json())
                                             .then(data => {
                                                 if (data.url) {
@@ -892,7 +898,10 @@ export default function SpendAnalysisPage() {
                                     onClick={async () => {
                                         try {
                                             const res = await fetch("http://localhost:8080/api/auth/google/disconnect", {
-                                                method: "POST"
+                                                method: "POST",
+                                                headers: {
+                                                    "x-user-id": localStorage.getItem("user_id") || "",
+                                                }
                                             });
                                             const data = await res.json();
                                             if (data.success) {

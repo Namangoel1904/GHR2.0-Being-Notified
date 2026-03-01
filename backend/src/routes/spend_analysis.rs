@@ -81,10 +81,7 @@ pub async fn get_spend_data(
             Ok(s) => s,
             Err(_) => continue,
         };
-        let _desc_str = match crypto::decrypt(&state.encryption_key, &record.description_encrypted) {
-            Ok(s) => s,
-            Err(_) => continue,
-        };
+
 
         let amount: f64 = amount_str.parse().unwrap_or(0.0);
         
@@ -214,6 +211,7 @@ pub async fn add_manual_transaction(
 
 pub async fn upload_statement(
     State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
     mut multipart: Multipart,
 ) -> impl IntoResponse {
     use crate::crypto;
@@ -480,30 +478,34 @@ RULES:
         }
     };
 
-    tracing::info!("✅ Successfully parsed {} transactions via DeepSeek!", parsed_txs.len());
-    // --- Step 3: Encrypt & Store returned Transactions ---
-    // Safely extract the mock user ID to prevent PostgreSQL foreign key constraint violations
-    let user_id = match sqlx::query!("SELECT id FROM users LIMIT 1").fetch_optional(&state.db).await {
-        Ok(Some(r)) => r.id,
-        _ => {
-            let uid = Uuid::new_v4();
-            let _ = sqlx::query!("INSERT INTO users (id, username, display_name) VALUES ($1, $2, $3)", uid, format!("test_{}", uid), "Test User").execute(&state.db).await;
-            uid
-        }
+    // Safely extract the authenticated HTTP user
+    let user_id_str = headers.get("x-user-id").and_then(|v| v.to_str().ok()).unwrap_or("");
+    let user_id = match Uuid::parse_str(user_id_str) {
+        Ok(uid) => uid,
+        Err(_) => return (StatusCode::UNAUTHORIZED, Json(serde_json::json!({"success": false, "message": "Unauthorized"}))),
     };
+
+    let user_crypto_key = crate::crypto::derive_user_key(&user_id);
     let mut success_count = 0;
 
     for tx in parsed_txs {
         use crate::crypto;
 
-        // Encrypt amount and description
+        // Encrypt amount using global key (per architecture rules)
         let amount_str = tx.amount.to_string();
         let amount_enc = match crypto::encrypt(&state.encryption_key, &amount_str) {
             Ok(e) => e,
             Err(_) => continue,
         };
 
-        let desc_enc = match crypto::encrypt(&state.encryption_key, &tx.description) {
+        // Encrypt description and merchant using user's private zero-knowledge key
+        let desc_enc = match crypto::encrypt(&user_crypto_key, &tx.description) {
+            Ok(e) => e,
+            Err(_) => continue,
+        };
+
+        let merchant_name = if tx.merchant.trim().is_empty() { "Statement Upload".to_string() } else { tx.merchant.clone() };
+        let merchant_enc = match crypto::encrypt(&user_crypto_key, &merchant_name) {
             Ok(e) => e,
             Err(_) => continue,
         };
@@ -518,13 +520,14 @@ RULES:
         // Insert into DB
         let insert_res = sqlx::query!(
             r#"
-            INSERT INTO transactions (id, user_id, amount_encrypted, description_encrypted, category, transaction_date)
-            VALUES ($1, $2, $3, $4, $5, $6)
+            INSERT INTO transactions (id, user_id, amount_encrypted, description_encrypted, merchant_encrypted, category, transaction_date)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
             "#,
             tx_id,
-            user_id, // Hardcoded for now. Real app uses session user
+            user_id,
             amount_enc,
             desc_enc,
+            merchant_enc,
             tx.category,
             tx_date
         )

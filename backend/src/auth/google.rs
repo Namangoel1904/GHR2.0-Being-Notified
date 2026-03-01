@@ -152,13 +152,12 @@ pub async fn google_callback(
 
 pub async fn google_disconnect(
     State(state): State<Arc<AppState>>,
+    headers: axum::http::HeaderMap,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
-    // Safely extract the mock user ID to prevent PostgreSQL foreign key constraint violations
-    let user_id = match sqlx::query!("SELECT id FROM users LIMIT 1").fetch_optional(&state.db).await {
-        Ok(Some(r)) => r.id,
-        _ => {
-            return Err((StatusCode::UNAUTHORIZED, "User not found".to_string()));
-        }
+    let user_id_str = headers.get("x-user-id").and_then(|v| v.to_str().ok()).unwrap_or("");
+    let user_id = match Uuid::parse_str(user_id_str) {
+        Ok(uid) => uid,
+        Err(_) => return Err((StatusCode::UNAUTHORIZED, "Unauthorized".to_string())),
     };
 
     let _ = sqlx::query!(

@@ -30,7 +30,7 @@ const features = [
   },
   {
     icon: Eye,
-    title: "Explainable AI (XAI)",
+    title: "AI Based Predictive Finance Modelling",
     description:
       "See the AI's Chain-of-Thought reasoning. No black boxes — every suggestion is transparent.",
     gradient: "from-blue-300/20 to-blue-400/10",
